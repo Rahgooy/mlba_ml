@@ -1,58 +1,76 @@
 import torch
-from torch import nn
-from torch.distributions import Categorical
+import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
-import time
-import copy
+from mlba import sample_lba
 import pandas as pd
 import numpy as np
+import copy
+import time
 
 
-class MLBA_MDN(torch.nn.Module):
+class MLBA_Params:
+    def __init__(self, mu_d, sigma_d, mu_A, sigma_A, mu_b_minus_A, sigma_b_minus_A):
+        self.mu_d = mu_d
+        self.sigma_d = sigma_d
+        self.mu_A = mu_A
+        self.sigma_A = sigma_A
+        self.mu_b_minus_A = mu_b_minus_A
+        self.sigma_b_minus_A = sigma_b_minus_A
+
+
+class MLBA_NN(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch):
-        """A mixture density network implementation of MLBA
-
-        Args:
-            n_features (int): number of features
-            n_options (int): number of options
-            n_hidden (int): number of hidden nodes
-        """
-        super(MLBA_MDN, self).__init__()
+        super(MLBA_NN, self).__init__()
         self.f1 = nn.Linear(n_features, n_hidden)
-        self.f2 = nn.Linear(n_hidden, n_hidden)
-        self.f3 = nn.Linear(n_hidden, n_options)
-        self.softplus = nn.Softplus()
+        # (mu, sigma) for d, A, b
+        self.f2 = nn.Linear(n_hidden, n_options * 2 * 3)
+        self.softPlus = nn.Softplus()
+        self.relu = nn.ReLU()
+
         self.options = n_options
         self.epochs = n_epochs
         self.batch = batch
 
         if torch.cuda.is_available():
-            dev = f"cuda:0"
+            dev = "cuda:0"
         else:
             dev = "cpu"
         self.device = torch.device(dev)
 
     def forward(self, X):
+        n = self.options
         x = self.f1(X)
-        x = torch.relu(x)
+        x = self.relu(x)
         x = self.f2(x)
-        x = torch.relu(x)
-        x = self.f3(x)
-        probs = torch.softmax(x, 1)
-        # sigma = self.softplus(x[:, self.options:])
-        return probs
+        mu_d = self.softPlus(x[:, :n]).view(-1, n)
+        sigma_d = (self.softPlus(x[:, n:2*n]) + 1e-6).view(-1, n)
+
+        mu_A = self.softPlus(x[:, 2*n:3*n]).view(-1, n)
+        sigma_A = (self.softPlus(x[:, 3*n:4*n]) + 1e-6).view(-1, n)
+
+        mu_b_minus_A = self.softPlus(x[:, 4*n:5*n]).view(-1, n)
+        sigma_b_minus_A = (self.softPlus(x[:, 5*n:]) + 1e-6).view(-1, n)
+
+        return MLBA_Params(mu_d, sigma_d, mu_A, sigma_A, mu_b_minus_A, sigma_b_minus_A)
 
     def loss(self, X, y):
-        probs = self.forward(X)
-        logs = torch.log(probs)
-        l = torch.nn.NLLLoss()
-        return l(logs, y.view(-1))
+        ttf_inv = self.ttf_inv(X)
+        l = nn.CrossEntropyLoss()
+        return l(ttf_inv, y.view(-1))
+
+    def ttf_inv(self, X):
+        mlba = self.forward(X)
+        d = mlba.mu_d
+        A = mlba.mu_A / 2
+        b = mlba.mu_b_minus_A + A
+        ttf_inv = d / (b - A).clamp(1e-6)
+        return ttf_inv
 
     def predict_proba(self, X):
         x = torch.Tensor(X.tolist()).to(self.device)
-        y = self.forward(x)
-        return y.detach().numpy()
+        ttf_inv = self.ttf_inv(x)
+        return torch.softmax(ttf_inv, 1).detach().numpy()
 
     def __tensor(self, x, dtype):
         return torch.tensor(x, dtype=dtype).to(self.device)
@@ -112,5 +130,5 @@ if __name__ == "__main__":
 
     X_train = train_data[features].values
     y_train = train_data.response.values - 1
-    model = MLBA_MDN(6, 3, 50, 1000, 8)
+    model = MLBA_NN(6, 3, 50, 1000, 2)
     model.fit(X_train, y_train)
