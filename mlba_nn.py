@@ -20,8 +20,9 @@ class MLBA_Params:
 
 
 class MLBA_NN(nn.Module):
-    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch):
+    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001):
         super(MLBA_NN, self).__init__()
+        self.lr = lr
         self.f1 = nn.Linear(n_features, n_hidden)
         # (mu, sigma) for d, A, b
         self.f2 = nn.Linear(n_hidden, n_options * 2 * 3)
@@ -86,7 +87,7 @@ class MLBA_NN(nn.Module):
         dataset = TensorDataset(X_train, y_train)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         best = 10000
         bestModel = None
         for epoch in range(self.epochs):
