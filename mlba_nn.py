@@ -103,9 +103,10 @@ class MLBA_NN(nn.Module):
                     f"val Loss: {val_loss:10.6f}, " +
                     f"Best: {best:10.6f}"
                 )
+        
         bestModel.train(False)
-        torch.save(bestModel, 'best_model.pkl')
-        return bestModel
+        self.train(False)
+        self.load_state_dict(bestModel.state_dict())
 
     def __train_step(self, optimizer, train_loader):
         train_loss = 0

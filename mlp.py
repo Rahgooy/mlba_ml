@@ -40,7 +40,6 @@ class MLP(torch.nn.Module):
         x = torch.relu(x)
         x = self.f3(x)
         probs = torch.softmax(x, 1)
-        # sigma = self.softplus(x[:, self.options:])
         return probs
 
     def loss(self, X, y):
@@ -70,13 +69,13 @@ class MLP(torch.nn.Module):
 
         optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
         best = 10000
-        bestModel = None
+        best_model = None
         for epoch in range(self.epochs):
             train_loss = self.__train_step(optimizer, train_loader)
             val_loss = self.loss(X_val, y_val)
             if val_loss < best:
                 best = val_loss
-                bestModel = copy.deepcopy(self)
+                best_model = copy.deepcopy(self)
 
             if epoch and epoch % 5 == 0:
                 print(
@@ -84,9 +83,9 @@ class MLP(torch.nn.Module):
                     f"val Loss: {val_loss:10.6f}, " +
                     f"Best: {best:10.6f}"
                 )
-        bestModel.train(False)
-        torch.save(bestModel, 'best_model.pkl')
-        return bestModel
+        best_model.train(False)
+        self.train(False)
+        self.load_state_dict(best_model.state_dict())
 
     def __train_step(self, optimizer, train_loader):
         train_loss = 0
@@ -114,3 +113,4 @@ if __name__ == "__main__":
     y_train = train_data.response.values - 1
     model = MLP(6, 3, 50, 1000, 8)
     model.fit(X_train, y_train)
+    torch.save(model, 'out/mlp.pkl')
