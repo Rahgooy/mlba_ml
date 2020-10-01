@@ -83,13 +83,13 @@ class LBA:
         return res
 
     def probs(self):
-        res = torch.zeros((1, self.d.shape[1]))
-        for i in range(self.d.shape[1]):
+        res = torch.zeros((self.d.shape[0],))
+        for i in range(self.d.shape[0]):
             # np.ceil((self.b[0].item() - self.A[0].item()) / self.d[0, i].item())
             a = 0
-            b = np.ceil(self.b[0].item() / self.d[0, i].item()) * 3
+            b = np.ceil(self.b[0].item() / self.d[i].item()) * 3
             print(b)
-            res[0, i] = simps(lambda x: self.firstTimePdf(
+            res[i] = simps(lambda x: self.firstTimePdf(
                 torch.tensor(x.reshape(-1, 1).tolist()))[:, i], a, b, b * 2)
         return res
 
@@ -97,7 +97,7 @@ class LBA:
 if __name__ == "__main__":
     A = torch.tensor([3.0], requires_grad=True)
     b = torch.tensor([10.0], requires_grad=True)
-    d = torch.tensor([[2.1, 4.3, 1.8]], requires_grad=True)
+    d = torch.tensor([2.1, 4.3, 1.8], requires_grad=True)
     s = torch.tensor([1.0], requires_grad=True)
 
     lba = LBA(A, b, d, s)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     print('Analytical: ', p.detach().numpy())
 
     rt, resp = sample_lba(100000, b.item(), A.item(),
-                          d.detach(), torch.ones((1, 3)), 0)
+                          d.detach().reshape(1, -1), torch.ones((1, 3)), 0)
     resp_freq, _ = np.histogram(resp, 3)
     print('Emprical: ', resp_freq/100000)
 
