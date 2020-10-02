@@ -37,11 +37,12 @@ class LBA:
     s: The Standard deviation of drift rates    """
 
     def __init__(self, A, b, d, s):
-        self.A = A
-        self.b = b
+        self.A = A if A.dim() == 1 else A.view(-1)
+        self.b = b if b.dim() == 1 else b.view(-1)
+        self.s = s if s.dim() == 1 else s.view(-1)
         self.d = d if d.dim() == 2 else d.view(1, -1)
-        self.s = s
         self.nOpt = self.d.shape[1]
+        self.nS = self.d.shape[0]
 
     def timeCDF(self, t, i):
         """
@@ -52,8 +53,12 @@ class LBA:
             i (int): option
         returns: Pr(T <= t) for each drift rate
         """
-
-        A, b, d, s = self.A, self.b, self.d[:, i], self.s
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t)
+        A, b, d, s = self.A, self.b, self.d[:, i].view(self.nS, 1), self.s
+        A = A.view(self.nS, 1).repeat((1, t.shape[1]))
+        b = b.view(self.nS, 1).repeat((1, t.shape[1]))
+        s = s.view(self.nS, 1).repeat((1, t.shape[1]))
         p = 1
         p += (b - A - t*d) / A * ncdf((b - A - t*d) / (t*s))
         p -= (b - t*d) / A * ncdf((b - t*d) / (t*s))
@@ -63,6 +68,8 @@ class LBA:
         return p
 
     def timePDF(self, t, i):
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t)
         A, b, d, s = self.A, self.b, self.d[:, i], self.s
         p = 0
         p -= d * ncdf((b - A - t * d)/(t*s))
@@ -98,10 +105,11 @@ class LBA:
 
 
 if __name__ == "__main__":
-    A = torch.tensor(3.0, requires_grad=True)
-    b = torch.tensor(10.0, requires_grad=True)
-    d = torch.tensor([2.1, 2.14, 2.18], requires_grad=True)
-    s = torch.tensor(1.0, requires_grad=True)
+    A = torch.tensor([3.0, 4.0], requires_grad=True)
+    b = torch.tensor([10.0, 10.0], requires_grad=True)
+    d = torch.tensor([[2.1, 2.14, 2.18], [1.41, 1.22, 1.18]],
+                     requires_grad=True)
+    s = torch.tensor([1.0, 1.0], requires_grad=True)
 
     lba = LBA(A, b, d, s)
     upper = b.item() / d.max().item() * 4
