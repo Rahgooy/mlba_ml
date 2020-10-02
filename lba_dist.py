@@ -61,7 +61,7 @@ class LBA:
         p += t*s / A * npdf((b - A - t*d) / (t*s))
         p -= t*s / A * npdf((b - t*d) / (t*s))
 
-        return p
+        return p.clamp(0)
 
     def timePDF(self, t, i):
         if not isinstance(t, torch.Tensor):
@@ -107,11 +107,12 @@ class LBA:
         return torch.stack(res, 1)
 
     def probs(self):
-        b = 100  # min(100, np.ceil(self.d.detach().numpy().max()) * 3)
-        res = simps(self.firstTimePdf, 1, b, b * 2, self.nS).t()
-        nz = res.sum(1) != 0
-        if nz.sum() > 0:
-            res[nz] /= res[nz].sum(1).view(-1, 1)
+        b = np.ceil(((self.b - self.A).max() / self.d.min().clamp(0.5)).item()) * 5
+        res = simps(self.firstTimePdf, 1, b, b * 4, self.nS).t()
+        res[:, -1] = 1 - res[:, :-1].sum(1)
+        # nz = res.sum(1) != 0
+        # if nz.sum() > 0:
+        #     res[nz] /= res[nz].sum(1).view(-1, 1)
         return res
 
 
@@ -128,8 +129,10 @@ if __name__ == "__main__":
     t = t.reshape(-1, 1).repeat(A.shape[0], 1).transpose()
 
     p = lba.probs()
-    p.sum().backward()
+    (p.sum()).backward()
     print(A.grad)
+    print(b.grad)
+    print(d.grad)      
     p = p.detach().numpy()
     print('Analytical: ', p)
 
@@ -142,10 +145,10 @@ if __name__ == "__main__":
     plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.timeCDF(t, 0)
+    f = lba.timeCDF(t, 0) 
     plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.firstTimePdf(t)
+    f = lba.firstTimePdf(t) 
     plt.plot(t[0], f[:, 0, 0].detach())
     plt.show()

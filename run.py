@@ -33,9 +33,10 @@ models = {
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
     # 'mlba_nn_0.1': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.1),
-    'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.05),
-    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.001),
-    'mlba_nn_0.01_100': lambda: MLBA_NN(6, 3, 100, 10, 8, 0.001),
+    # 'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, 10, 32, 0.05),
+    'mlba_nn_0.01': lambda: MLBA_NN(6, 3, 50, 50, 32, 0.01),
+    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, 50, 32, 0.001),
+    'mlba_nn_0.01_100': lambda: MLBA_NN(6, 3, 100, 50, 32, 0.001),
 }
 
 train_data = pd.read_csv('data/E2.csv')
