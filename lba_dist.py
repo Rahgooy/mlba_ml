@@ -85,12 +85,12 @@ class LBA:
     def probs(self):
         res = torch.zeros((self.d.shape[0],))
         for i in range(self.d.shape[0]):
-            # np.ceil((self.b[0].item() - self.A[0].item()) / self.d[0, i].item())
-            a = 0
+            a = 1
             b = np.ceil(self.b.item() / self.d[i].item()) * 3
-            print(b)
             res[i] = simps(lambda x: self.firstTimePdf(
                 torch.tensor(x.reshape(-1, 1).tolist()))[:, i], a, b, b * 2)
+        if res.sum() > 0:
+            res /= res.sum()
         return res
 
 
@@ -102,9 +102,12 @@ if __name__ == "__main__":
 
     lba = LBA(A, b, d, s)
     upper = b.item() / d.max().item() * 4
-    t = np.linspace(0, upper, 1000).reshape((-1, 1))
+    t = np.linspace(0.2, upper, 1000).reshape((-1, 1))
 
-    p = lba.probs().detach().numpy()
+    p = lba.probs()
+    p.sum().backward()
+    print(A.grad)
+    p = p.detach().numpy()
     print('Analytical: ', p/p.sum())
 
     rt, resp = sample_lba(100000, b.item(), A.item(),
