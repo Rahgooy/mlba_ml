@@ -45,20 +45,15 @@ class LBA:
         self.nS = self.d.shape[0]
 
     def timeCDF(self, t, i):
-        """
-        The CDF of time to reach the threshold b
-
-        Args:
-            t (float): time
-            i (int): option
-        returns: Pr(T <= t) for each drift rate
-        """
         if not isinstance(t, torch.Tensor):
             t = torch.tensor(t)
+        t = t.view(self.nS, -1)
+
         A, b, d, s = self.A, self.b, self.d[:, i].view(self.nS, 1), self.s
         A = A.view(self.nS, 1).repeat((1, t.shape[1]))
         b = b.view(self.nS, 1).repeat((1, t.shape[1]))
         s = s.view(self.nS, 1).repeat((1, t.shape[1]))
+
         p = 1
         p += (b - A - t*d) / A * ncdf((b - A - t*d) / (t*s))
         p -= (b - t*d) / A * ncdf((b - t*d) / (t*s))
@@ -70,13 +65,20 @@ class LBA:
     def timePDF(self, t, i):
         if not isinstance(t, torch.Tensor):
             t = torch.tensor(t)
-        A, b, d, s = self.A, self.b, self.d[:, i], self.s
+        t = t.view(self.nS, -1)
+
+        A, b, d, s = self.A, self.b, self.d[:, i].view(self.nS, 1), self.s
+        A = A.view(self.nS, 1).repeat((1, t.shape[1]))
+        b = b.view(self.nS, 1).repeat((1, t.shape[1]))
+        s = s.view(self.nS, 1).repeat((1, t.shape[1]))
+
         p = 0
         p -= d * ncdf((b - A - t * d)/(t*s))
         p += s * npdf((b - A - t * d)/(t*s))
         p += d * ncdf((b - t * d)/(t*s))
         p -= s * npdf((b - t * d)/(t*s))
         p /= A
+
         return p
 
     def firstTimePdf(self, t):
