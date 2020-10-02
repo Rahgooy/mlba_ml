@@ -22,7 +22,7 @@ def simps(f, a, b, n=50):
     dx = (b-a)/n
     x = np.linspace(a, b, n+1)
     y = f(x)
-    S = dx/3 * torch.sum(y[0:-1:2] + 4*y[1::2] + y[2::2])
+    S = dx/3 * (y[0:-1:2].sum(0) + 4*y[1::2].sum(0) + y[2::2].sum(0))
     return S
 
 
@@ -39,19 +39,21 @@ class LBA:
     def __init__(self, A, b, d, s):
         self.A = A
         self.b = b
-        self.d = d
+        self.d = d if d.dim() == 2 else d.view(1, -1)
         self.s = s
+        self.nOpt = self.d.shape[1]
 
-    def timeCDF(self, t):
+    def timeCDF(self, t, i):
         """
         The CDF of time to reach the threshold b
 
         Args:
             t (float): time
+            i (int): option
         returns: Pr(T <= t) for each drift rate
         """
 
-        A, b, d, s = self.A, self.b, self.d, self.s
+        A, b, d, s = self.A, self.b, self.d[:, i], self.s
         p = 1
         p += (b - A - t*d) / A * ncdf((b - A - t*d) / (t*s))
         p -= (b - t*d) / A * ncdf((b - t*d) / (t*s))
@@ -60,8 +62,8 @@ class LBA:
 
         return p
 
-    def timePDF(self, t):
-        A, b, d, s = self.A, self.b, self.d, self.s
+    def timePDF(self, t, i):
+        A, b, d, s = self.A, self.b, self.d[:, i], self.s
         p = 0
         p -= d * ncdf((b - A - t * d)/(t*s))
         p += s * npdf((b - A - t * d)/(t*s))
@@ -71,25 +73,25 @@ class LBA:
         return p
 
     def firstTimePdf(self, t):
-        cdf = self.timeCDF(t)
-        pdf = self.timePDF(t)
-        res = torch.ones(cdf.shape)
-        for i in range(cdf.shape[1]):
-            for j in range(cdf.shape[1]):
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t)
+        res = [1] * self.nOpt
+        cdf = []
+        pdf = []
+        for i in range(self.nOpt):
+            cdf.append(self.timeCDF(t, i))
+            pdf.append(self.timePDF(t, i))
+
+        for i in range(self.nOpt):
+            for j in range(self.nOpt):
                 if i == j:
-                    res[:, i] *= pdf[:, i]
+                    res[i] *= pdf[i]
                 else:
-                    res[:, i] *= 1 - cdf[:, j]
-        return res
+                    res[i] *= 1 - cdf[j]
+        return torch.stack(res, 1).view(-1, self.nOpt)
 
     def probs(self):
-        res = torch.zeros((self.d.shape[0],))
-        for i in range(self.d.shape[0]):
-            a = 1
-            b = np.ceil(self.b.item() / (self.d[i].item() + 1e-6)) * 3
-            b = max(10, b)
-            res[i] = simps(lambda x: self.firstTimePdf(
-                torch.tensor(x.reshape(-1, 1).tolist()))[:, i], a, b, b * 2)
+        res = simps(self.firstTimePdf, 1, 20, 40)
         if res.sum() > 0:
             res /= res.sum()
         return res
@@ -116,11 +118,11 @@ if __name__ == "__main__":
     resp_freq, _ = np.histogram(resp, 3)
     print('Emprical: ', resp_freq/100000)
 
-    f = lba.timePDF(torch.tensor(t.tolist()))
+    f = lba.timePDF(torch.tensor(t.tolist()), 0)
     plt.plot(t, f.detach())
     plt.show()
 
-    f = lba.timeCDF(torch.tensor(t.tolist()))
+    f = lba.timeCDF(torch.tensor(t.tolist()), 0)
     plt.plot(t, f.detach())
     plt.show()
 
