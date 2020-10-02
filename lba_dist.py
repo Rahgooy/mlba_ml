@@ -82,8 +82,14 @@ class LBA:
         return p
 
     def firstTimePdf(self, t):
-        if not isinstance(t, torch.Tensor):
-            t = torch.tensor(t)
+        """[summary]
+
+        Args:
+            t ([matrix]): times
+
+        Returns:
+            [matrix]: nTimes * nOps * nS
+        """
         res = [1] * self.nOpt
         cdf = []
         pdf = []
@@ -94,10 +100,10 @@ class LBA:
         for i in range(self.nOpt):
             for j in range(self.nOpt):
                 if i == j:
-                    res[i] *= pdf[i]
+                    res[i] *= pdf[i].t()
                 else:
-                    res[i] *= 1 - cdf[j]
-        return torch.stack(res, 1).view(-1, self.nOpt)
+                    res[i] *= 1 - cdf[j].t()
+        return torch.stack(res, 1)
 
     def probs(self):
         res = simps(self.firstTimePdf, 1, 20, 40)
