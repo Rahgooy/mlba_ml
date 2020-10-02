@@ -16,11 +16,12 @@ def ncdf(x):
     return norm.cdf(x)
 
 
-def simps(f, a, b, n=50):
+def simps(f, a, b, n, m):
     if n % 2 == 1:
         n += 1
     dx = (b-a)/n
     x = np.linspace(a, b, n+1)
+    x = x.reshape(-1, 1).repeat(m, 1).transpose()
     y = f(x)
     S = dx/3 * (y[0:-1:2].sum(0) + 4*y[1::2].sum(0) + y[2::2].sum(0))
     return S
@@ -106,9 +107,11 @@ class LBA:
         return torch.stack(res, 1)
 
     def probs(self):
-        res = simps(self.firstTimePdf, 1, 20, 40)
-        if res.sum() > 0:
-            res /= res.sum()
+        b = 100  # min(100, np.ceil(self.d.detach().numpy().max()) * 3)
+        res = simps(self.firstTimePdf, 1, b, b * 2, self.nS).t()
+        nz = res.sum(1) != 0
+        if nz.sum() > 0:
+            res[nz] /= res[nz].sum(1).view(-1, 1)
         return res
 
 
@@ -120,28 +123,29 @@ if __name__ == "__main__":
     s = torch.tensor([1.0, 1.0], requires_grad=True)
 
     lba = LBA(A, b, d, s)
-    upper = b.item() / d.max().item() * 4
-    t = np.linspace(0.2, upper, 1000).reshape((-1, 1))
+    upper = b.max().item() / d.max().item() * 4
+    t = np.linspace(0.2, upper, 1000)
+    t = t.reshape(-1, 1).repeat(A.shape[0], 1).transpose()
 
     p = lba.probs()
     p.sum().backward()
     print(A.grad)
     p = p.detach().numpy()
-    print('Analytical: ', p/p.sum())
+    print('Analytical: ', p)
 
-    rt, resp = sample_lba(100000, b.item(), A.item(),
-                          d.detach().reshape(1, -1), torch.ones((1, 3)) * s.item(), 0)
+    rt, resp = sample_lba(100000, b[0].item(), A[0].item(),
+                          d[0].detach().reshape(1, -1), torch.ones((1, 3)) * s[0].item(), 0)
     resp_freq, _ = np.histogram(resp, 3)
     print('Emprical: ', resp_freq/100000)
 
-    f = lba.timePDF(torch.tensor(t.tolist()), 0)
-    plt.plot(t, f.detach())
+    f = lba.timePDF(t, 0)
+    plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.timeCDF(torch.tensor(t.tolist()), 0)
-    plt.plot(t, f.detach())
+    f = lba.timeCDF(t, 0)
+    plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.firstTimePdf(torch.tensor(t.tolist()))
-    plt.plot(t, f.detach())
+    f = lba.firstTimePdf(t)
+    plt.plot(t[0], f[:, 0, 0].detach())
     plt.show()
