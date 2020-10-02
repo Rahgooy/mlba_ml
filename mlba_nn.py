@@ -7,25 +7,24 @@ import pandas as pd
 import numpy as np
 import copy
 import time
+from lba_dist import LBA
 
 
 class MLBA_Params:
-    def __init__(self, mu_d, sigma_d, mu_A, sigma_A, mu_b_minus_A, sigma_b_minus_A):
+    def __init__(self, mu_d, sigma_d, A, b):
         self.mu_d = mu_d
         self.sigma_d = sigma_d
-        self.mu_A = mu_A
-        self.sigma_A = sigma_A
-        self.mu_b_minus_A = mu_b_minus_A
-        self.sigma_b_minus_A = sigma_b_minus_A
+        self.A = A
+        self.b = b
 
 
 class MLBA_NN(nn.Module):
-    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001):
+    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.01):
         super(MLBA_NN, self).__init__()
         self.lr = lr
         self.f1 = nn.Linear(n_features, n_hidden)
-        # (mu, sigma) for d, A, b
-        self.f2 = nn.Linear(n_hidden, n_options * 2 * 3)
+        # mu_d and sigma_d for each option and A, b
+        self.f2 = nn.Linear(n_hidden, n_options * 2 + 2)
         self.softPlus = nn.Softplus()
         self.relu = nn.ReLU()
 
@@ -44,34 +43,35 @@ class MLBA_NN(nn.Module):
         x = self.f1(X)
         x = self.relu(x)
         x = self.f2(x)
-        mu_d = self.softPlus(x[:, :n]).view(-1, n)
-        sigma_d = (self.softPlus(x[:, n:2*n]) + 1e-6).view(-1, n)
 
-        mu_A = self.softPlus(x[:, 2*n:3*n]).view(-1, n)
-        sigma_A = (self.softPlus(x[:, 3*n:4*n]) + 1e-6).view(-1, n)
+        mu_d = (self.softPlus(x[:, :n]) + 1e-6).view(-1, n)
+        sigma_d = (self.softPlus(x[:, n:2*n]) + 0.5).view(-1, n)
+        # sigma_d = torch.ones(mu_d.shape)
+        A = self.softPlus(x[:, 2*n]).view(-1, 1)
+        b = self.softPlus(x[:, 2*n+1]).view(-1, 1) + A
 
-        mu_b_minus_A = self.softPlus(x[:, 4*n:5*n]).view(-1, n)
-        sigma_b_minus_A = (self.softPlus(x[:, 5*n:]) + 1e-6).view(-1, n)
-
-        return MLBA_Params(mu_d, sigma_d, mu_A, sigma_A, mu_b_minus_A, sigma_b_minus_A)
+        return MLBA_Params(mu_d, sigma_d, A, b)
 
     def loss(self, X, y):
-        ttf_inv = self.ttf_inv(X)
-        l = nn.CrossEntropyLoss()
-        return l(ttf_inv, y.view(-1))
-
-    def ttf_inv(self, X):
-        mlba = self.forward(X)
-        d = mlba.mu_d
-        A = mlba.mu_A / 2
-        b = mlba.mu_b_minus_A + A
-        ttf_inv = d / (b - A).clamp(1e-6)
-        return ttf_inv
+        params = self.forward(X)
+        nll = 0.0
+        for i in range(X.shape[0]):
+            lba = LBA(params.A[i], params.b[i],
+                      params.mu_d[i], params.sigma_d[i])
+            probs = lba.probs()
+            l = probs[y[i]].clamp(1e-6)
+            nll -= torch.log(l)
+        return nll / X.shape[0]
 
     def predict_proba(self, X):
         x = torch.Tensor(X.tolist()).to(self.device)
-        ttf_inv = self.ttf_inv(x)
-        return torch.softmax(ttf_inv, 1).detach().numpy()
+        params = self.forward(x)
+        probs = []
+        for i in range(X.shape[0]):
+            lba = LBA(params.A[i], params.b[i],
+                      params.mu_d[i], params.sigma_d[i])
+            probs.append(lba.probs().detach().numpy())
+        return np.array(probs)
 
     def __tensor(self, x, dtype):
         return torch.tensor(x, dtype=dtype).to(self.device)
@@ -88,22 +88,22 @@ class MLBA_NN(nn.Module):
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        best = 10000
+        best = float('inf')
         bestModel = None
         for epoch in range(self.epochs):
             train_loss = self.__train_step(optimizer, train_loader)
-            val_loss = self.loss(X_val, y_val)
+            val_loss = self.loss(X_val, y_val).item()
             if val_loss < best:
                 best = val_loss
                 bestModel = copy.deepcopy(self)
 
-            if epoch and epoch % 5 == 0:
+            if True:  # epoch and epoch % 5 == 0:
                 print(
                     f"{time.asctime()} >  Epoch {epoch:5d} - Train Loss: {train_loss: 12.6f}, " +
                     f"val Loss: {val_loss:10.6f}, " +
                     f"Best: {best:10.6f}"
                 )
-        
+
         bestModel.train(False)
         self.train(False)
         self.load_state_dict(bestModel.state_dict())
@@ -131,6 +131,6 @@ if __name__ == "__main__":
     e1c = pd.read_csv('data/E1c.csv')
 
     X_train = train_data[features].values
-    y_train = train_data.response.values - 1
-    model = MLBA_NN(6, 3, 50, 1000, 2)
+    y_train = (train_data.response.values - 1)
+    model = MLBA_NN(6, 3, 50, 100, 8)
     model.fit(X_train, y_train)

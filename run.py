@@ -28,16 +28,19 @@ def load_paper_data(path):
 features = ['Rect1Height', 'Rect1Width', 'Rect2Height',
             'Rect2Width', 'Rect3Height', 'Rect3Width']
 models = {
-    'logistic_regression': lambda: LogisticRegression(multi_class='multinomial', solver='newton-cg'),
-    'random_forest': lambda: RandomForestClassifier(n_estimators=100),
-    'mlp': lambda: MLP(6, 3, 50, 100, 32),
-    'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn': lambda: MLBA_NN(6, 3, 50, 100, 32)
+    # 'logistic_regression': lambda: LogisticRegression(multi_class='multinomial', solver='newton-cg'),
+    # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
+    # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
+    # 'mlp_sk': lambda: MLPClassifier(),
+    # 'mlba_nn_0.1': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.1),
+    'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.05),
+    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.001),
+    'mlba_nn_0.01_100': lambda: MLBA_NN(6, 3, 100, 10, 8, 0.001),
 }
 
 train_data = pd.read_csv('data/E2.csv')
 X_train = train_data[features].values
-y_train = train_data.response.values - 1
+y_train = (train_data.response.values - 1)
 
 e1a = pd.read_csv('data/E1a.csv')
 e1b = pd.read_csv('data/E1b.csv')
@@ -137,5 +140,5 @@ def evaluate(model_creator, name, n=10, c=1):
 
 for model in models:
     print(f'Evaluating {model} ...')
-    evaluate(models[model], model, n=50)
+    evaluate(models[model], model, n=1)
     print('')

@@ -86,7 +86,8 @@ class LBA:
         res = torch.zeros((self.d.shape[0],))
         for i in range(self.d.shape[0]):
             a = 1
-            b = np.ceil(self.b.item() / self.d[i].item()) * 3
+            b = np.ceil(self.b.item() / (self.d[i].item() + 1e-6)) * 3
+            b = max(10, b)
             res[i] = simps(lambda x: self.firstTimePdf(
                 torch.tensor(x.reshape(-1, 1).tolist()))[:, i], a, b, b * 2)
         if res.sum() > 0:
