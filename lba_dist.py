@@ -107,12 +107,11 @@ class LBA:
         return torch.stack(res, 1)
 
     def probs(self):
-        b = np.ceil(((self.b - self.A).max() / self.d.min().clamp(0.5)).item()) * 5
-        res = simps(self.firstTimePdf, 1, b, b * 4, self.nS).t()
-        res[:, -1] = 1 - res[:, :-1].sum(1)
-        # nz = res.sum(1) != 0
-        # if nz.sum() > 0:
-        #     res[nz] /= res[nz].sum(1).view(-1, 1)
+        b = np.ceil(((self.b - self.A).max() / self.d.min()).item()) * 10
+        a = max(1, np.random.randn() + 1)
+        res = simps(self.firstTimePdf, 1, b, b * 2, self.nS).t()
+        i = np.random.randint(0, self.nOpt)
+        res[:, i] = 1 - (res[:, :i].sum(1) + res[:, i+1:].sum(1))
         return res
 
 

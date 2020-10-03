@@ -27,16 +27,18 @@ def load_paper_data(path):
 
 features = ['Rect1Height', 'Rect1Width', 'Rect2Height',
             'Rect2Width', 'Rect3Height', 'Rect3Width']
+epochs = 100
 models = {
     # 'logistic_regression': lambda: LogisticRegression(multi_class='multinomial', solver='newton-cg'),
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    # 'mlba_nn_0.1': lambda: MLBA_NN(6, 3, 50, 10, 8, 0.1),
-    # 'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, 10, 32, 0.05),
-    'mlba_nn_0.01': lambda: MLBA_NN(6, 3, 50, 50, 32, 0.01),
-    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, 50, 32, 0.001),
-    'mlba_nn_0.01_100': lambda: MLBA_NN(6, 3, 100, 50, 32, 0.001),
+    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.001),
+    'mlba_nn_0.001_64': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001),
+    'mlba_nn_0.001_8': lambda: MLBA_NN(6, 3, 50, epochs, 8, 0.001),
+    'mlba_nn_0.01': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.01),
+    'mlba_nn_0.001_32_100': lambda: MLBA_NN(6, 3, 100, epochs, 32, 0.001),
+    'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.05), 
 }
 
 train_data = pd.read_csv('data/E2.csv')
@@ -141,5 +143,5 @@ def evaluate(model_creator, name, n=10, c=1):
 
 for model in models:
     print(f'Evaluating {model} ...')
-    evaluate(models[model], model, n=1)
+    evaluate(models[model], model, n=5)
     print('')

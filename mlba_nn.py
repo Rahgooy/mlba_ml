@@ -24,7 +24,7 @@ class MLBA_NN(nn.Module):
         self.lr = lr
         self.f1 = nn.Linear(n_features, n_hidden)
         # mu_d for each option and A, b, sigma_d
-        self.f2 = nn.Linear(n_hidden, n_options * 2 + 2)
+        self.f2 = nn.Linear(n_hidden, n_options + 3)
         self.softPlus = nn.Softplus()
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -45,12 +45,10 @@ class MLBA_NN(nn.Module):
         x = self.relu(x)
         x = self.f2(x)
 
-        mu_d = (self.sigmoid(x[:, :n]) * 10 + 0.1).view(-1, n)
-        sigma_d = torch.ones((X.shape[0], 1)) # (self.softPlus(x[:, n]) + 1).view(-1, 1)
-        # A = (self.softPlus(x[:, 2*n]) + 0.1).view(-1, 1)
-        # b = (self.softPlus(x[:, 2*n+1]) + 0.1).view(-1, 1) + A
-        A = (self.sigmoid(x[:, 2*n]) + 0.1).view(-1, 1) * 10
-        b = (self.sigmoid(x[:, 2*n+1]) + 0.1).view(-1, 1) * 10 + A
+        mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
+        sigma_d = torch.ones(X.shape[0]).view(-1, 1) #(self.sigmoid(x[:, n]) * 3 + 1.0).view(-1, 1)
+        A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
 
         return MLBA_Params(mu_d, sigma_d, A, b)
 
@@ -66,7 +64,10 @@ class MLBA_NN(nn.Module):
         x = torch.Tensor(X.tolist()).to(self.device)
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
-        probs = lba.probs().detach().numpy()
+        probs = 0
+        for _ in range(30):
+            probs += lba.probs().detach().numpy()
+        probs /= 30
         return probs
 
     def __tensor(self, x, dtype):
@@ -93,7 +94,7 @@ class MLBA_NN(nn.Module):
                 best = val_loss
                 bestModel = copy.deepcopy(self)
 
-            if epoch and epoch % 2 == 0:
+            if epoch % 5 == 0:
                 print(
                     f"{time.asctime()} >  Epoch {epoch:5d} - Train Loss: {train_loss: 12.6f}, " +
                     f"val Loss: {val_loss:10.6f}, " +
