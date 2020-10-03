@@ -16,6 +16,7 @@ def get_counts(data):
 outDir = Path('out')
 
 results = []
+exp_counts = None
 for model in outDir.iterdir():
     if model.is_dir():
         modelMSE = []
@@ -33,11 +34,12 @@ for model in outDir.iterdir():
                 m = float(val)
                 mse += m * counts[key]
             modelMSE.append((mse/total, total))
-        r = model.name + ': ' + ' & '.join([f'{x[0]:0.4f}' for x in modelMSE])
         overall = sum([x[0] * x[1] for x in modelMSE]) / sum([x[1]
                                                               for x in modelMSE]) if len(modelMSE) else 0.0
-        r += f'& {overall:0.4f}'
-        # print(r)
         results.append([model.name] + [m[0] for m in modelMSE] + [overall])
-        # print(f'Counts: {[x[1] for x in modelMSE]}')
+        if exp_counts is None:
+            exp_counts = [m[1] for m in modelMSE]
+
+print("\n" * 5)
+print("Counts:", exp_counts)
 print(tabulate(results, headers=['Model', "E1a", "E1b", "E1c", "Overall"], tablefmt='fancy_grid', floatfmt=".4f"))
