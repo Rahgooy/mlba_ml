@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from tabulate import tabulate
 
 e1a = pd.read_csv('data/E1a.csv')
 e1b = pd.read_csv('data/E1b.csv')
@@ -14,14 +15,17 @@ def get_counts(data):
 
 outDir = Path('out')
 
+results = []
 for model in outDir.iterdir():
     if model.is_dir():
         modelMSE = []
         for e, data in experiments:
-            counts = get_counts(data)
-            total = sum(counts[k] for k in counts)
             f = f'{model.name}_{e}_mse.txt'
             f = model / f
+            if not f.exists():
+                continue
+            counts = get_counts(data)
+            total = sum(counts[k] for k in counts)
             effects = f.read_text().split('\n')
             mse = 0
             for effect in effects[:-1]:
@@ -30,8 +34,10 @@ for model in outDir.iterdir():
                 mse += m * counts[key]
             modelMSE.append((mse/total, total))
         r = model.name + ': ' + ' & '.join([f'{x[0]:0.4f}' for x in modelMSE])
-        overall = sum([x[0] * x[1] for x in modelMSE]) / sum([x[1] for x in modelMSE])
+        overall = sum([x[0] * x[1] for x in modelMSE]) / sum([x[1]
+                                                              for x in modelMSE]) if len(modelMSE) else 0.0
         r += f'& {overall:0.4f}'
-        print(r)
-        print(f'Counts: {[x[1] for x in modelMSE]}')
-        
+        # print(r)
+        results.append([model.name] + [m[0] for m in modelMSE] + [overall])
+        # print(f'Counts: {[x[1] for x in modelMSE]}')
+print(tabulate(results, headers=['Model', "E1a", "E1b", "E1c", "Overall"], tablefmt='fancy_grid', floatfmt=".4f"))
