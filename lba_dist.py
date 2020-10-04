@@ -6,6 +6,7 @@ import scipy.integrate as spi
 from mlba import sample_lba
 
 norm = Normal(0, 1)
+x_, w_ = np.polynomial.legendre.leggauss(100)
 
 
 def npdf(x):
@@ -25,9 +26,6 @@ def simps(f, a, b, n, m):
     y = f(x)
     S = dx/3 * (y[0:-1:2].sum(0) + 4*y[1::2].sum(0) + y[2::2].sum(0))
     return S
-
-
-x_, w_ = np.polynomial.legendre.leggauss(100)
 
 
 def gauss(f, m):

@@ -47,8 +47,7 @@ class MLBA_NN(nn.Module):
         x = self.f2(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
-        # (self.sigmoid(x[:, n]) * 3 + 1.0).view(-1, 1)
-        sigma_d = torch.ones(X.shape[0]).view(-1, 1)
+        sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
         A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
         b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
 
@@ -73,11 +72,11 @@ class MLBA_NN(nn.Module):
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
         probs = []
-        n = 100000
+        n = 10000
         for i in range(X.shape[0]):
             rt, resp = sample_lba(n, params.b[i].item(), params.A[i].item(),
                                   params.mu_d[i].detach().reshape(1, -1),
-                                  torch.ones((1, 3)) * params.sigma_d[i].item(), 0)
+                                  torch.ones((1, self.options)) * params.sigma_d[i].item(), 0)
             resp_freq, _ = np.histogram(resp, 3)
             probs.append(resp_freq / n)
 
@@ -142,7 +141,7 @@ if __name__ == "__main__":
 
     X_train = train_data[features].values
     y_train = (train_data.response.values - 1)
-    model = MLBA_NN(6, 3, 50, 50, 32, 0.001)
+    model = MLBA_NN(6, 3, 50, 100, 32, 0.001)
     model.fit(X_train, y_train)
 
     def evaluate(X, y):
