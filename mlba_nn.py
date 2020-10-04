@@ -8,6 +8,7 @@ import numpy as np
 import copy
 import time
 from lba_dist import LBA
+import os
 
 
 class MLBA_Params:
@@ -19,7 +20,7 @@ class MLBA_Params:
 
 
 class MLBA_NN(nn.Module):
-    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.01):
+    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001):
         super(MLBA_NN, self).__init__()
         self.lr = lr
         self.f1 = nn.Linear(n_features, n_hidden)
@@ -46,7 +47,8 @@ class MLBA_NN(nn.Module):
         x = self.f2(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
-        sigma_d = torch.ones(X.shape[0]).view(-1, 1) #(self.sigmoid(x[:, n]) * 3 + 1.0).view(-1, 1)
+        # (self.sigmoid(x[:, n]) * 3 + 1.0).view(-1, 1)
+        sigma_d = torch.ones(X.shape[0]).view(-1, 1)
         A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
         b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
 
@@ -69,6 +71,21 @@ class MLBA_NN(nn.Module):
             probs += lba.probs().detach().numpy()
         probs /= 30
         return probs
+
+    def predict_proba_mlba(self, X):
+        x = torch.Tensor(X.tolist()).to(self.device)
+        params = self.forward(x)
+        lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
+        probs = []
+        n = 100000
+        for i in range(X.shape[0]):
+            rt, resp = sample_lba(n, params.b[i].item(), params.A[i].item(),
+                                  params.mu_d[i].detach().reshape(1, -1),
+                                  torch.ones((1, 3)) * params.sigma_d[i].item(), 0)
+            resp_freq, _ = np.histogram(resp, 3)
+            probs.append(resp_freq / n)
+
+        return np.array(probs)
 
     def __tensor(self, x, dtype):
         return torch.tensor(x, dtype=dtype).to(self.device)
@@ -96,7 +113,7 @@ class MLBA_NN(nn.Module):
 
             if epoch % 5 == 0:
                 print(
-                    f"{time.asctime()} >  Epoch {epoch:5d} - Train Loss: {train_loss: 12.6f}, " +
+                    f"[{os.getpid()}] {time.asctime()} >  Epoch {epoch:5d} - Train Loss: {train_loss: 12.6f}, " +
                     f"val Loss: {val_loss:10.6f}, " +
                     f"Best: {best:10.6f}"
                 )
@@ -129,5 +146,27 @@ if __name__ == "__main__":
 
     X_train = train_data[features].values
     y_train = (train_data.response.values - 1)
-    model = MLBA_NN(6, 3, 50, 100, 8)
+    model = MLBA_NN(6, 3, 50, 50, 32, 0.001)
     model.fit(X_train, y_train)
+
+    def evaluate(X, y):
+        resp_freq, _ = np.histogram(y, 3)
+        probs = resp_freq / len(y)
+        probs1 = model.predict_proba(X).mean(0)
+        probs2 = model.predict_proba_mlba(X).mean(0)
+
+        print(probs)
+        print(probs1)
+        print(probs2)
+
+    print("train")
+    evaluate(X_train, y_train)
+
+    print("e1a")
+    evaluate(e1a[features].values, e1a.response.values - 1)
+
+    print("e1b")
+    evaluate(e1b[features].values, e1b.response.values - 1)
+
+    print("e1c")
+    evaluate(e1c[features].values, e1c.response.values - 1)

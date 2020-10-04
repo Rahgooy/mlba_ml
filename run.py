@@ -14,6 +14,8 @@ from mlp import MLP
 from mlba_nn import MLBA_NN
 import json
 from pathlib import Path
+from multiprocessing import Pool
+import os
 
 
 def load_paper_data(path):
@@ -33,12 +35,11 @@ models = {
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.001': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.001),
-    'mlba_nn_0.001_64': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001),
-    'mlba_nn_0.001_8': lambda: MLBA_NN(6, 3, 50, epochs, 8, 0.001),
-    'mlba_nn_0.01': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.01),
-    'mlba_nn_0.001_32_100': lambda: MLBA_NN(6, 3, 100, epochs, 32, 0.001),
-    'mlba_nn_0.05': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.05), 
+    'mlba_nn_0.0005_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.0005),
+    # 'mlba_nn_0.001_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.001),
+    # 'mlba_nn_0.001_64': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001),
+    # 'mlba_nn_0.001_128': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001),
+    # 'mlba_nn_0.001_32_100': lambda: MLBA_NN(6, 3, 100, epochs, 32, 0.001),
 }
 
 train_data = pd.read_csv('data/E2.csv')
@@ -112,6 +113,7 @@ def save_results(path, actual, pred, mse, names, c):
 
 
 def evaluate(model_creator, name, n=10, c=1):
+    print(f'[{os.getpid()}] Evaluating {name} ...')
     dir = Path(f'out/{name}')
     dir.mkdir(parents=True, exist_ok=True)
     actual = {}
@@ -119,7 +121,7 @@ def evaluate(model_creator, name, n=10, c=1):
     mse = {}
     names = {}
     for i in range(n):
-        print(f'Iteration {i} ...')
+        print(f'[{os.getpid()}] Iteration {i} ...')
         model = model_creator()
         model.fit(X_train, y_train)
         for e in experimentData:
@@ -141,7 +143,9 @@ def evaluate(model_creator, name, n=10, c=1):
                      actual[e], pred[e], mse[e], names[e], c)
 
 
-for model in models:
-    print(f'Evaluating {model} ...')
-    evaluate(models[model], model, n=5)
-    print('')
+def eval_process(m):
+    evaluate(models[m], m, n=50)
+
+
+with Pool(5) as p:
+    p.map(eval_process, list(models.keys()))
