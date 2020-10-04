@@ -27,6 +27,39 @@ def simps(f, a, b, n, m):
     return S
 
 
+x_, w_ = np.polynomial.legendre.leggauss(100)
+
+
+def gauss(f, m):
+    """
+    from : https://stackoverflow.com/a/37421753/1847988
+    """
+    def zero2MinusOneAndOne(x):
+        """
+        Changes the interval from [0, 1] to [-1, 1]
+        """
+        y = f(x/(1-x))
+        for i in range(y.shape[1]):
+            y[:, i, :] /= ((1-x)**2).t()
+        return y
+
+    def inf2MinusOneAndOne(x):
+        """
+        Changes the interval from [0, inf) to [-1, 1]
+        """
+        return 0.5 * zero2MinusOneAndOne(x/2 + 1/2)
+
+    x = x_.reshape(-1, 1).repeat(m, 1).transpose()
+    w = w_.reshape(-1, 1).repeat(m, 1)
+    x = torch.tensor(x)
+    w = torch.tensor(w)
+    y = inf2MinusOneAndOne(x)
+    for i in range(y.shape[1]):
+        y[:, i, :] *= w
+
+    return y.sum(0)
+
+
 class LBA:
     """
     This class provides functions related to the distribution of LBA
@@ -107,10 +140,9 @@ class LBA:
         return torch.stack(res, 1)
 
     def probs(self):
-        b = np.ceil(((self.b - self.A).max() / self.d.min()).item()) * 10
-        a = max(1, np.random.randn() + 1)
-        res = simps(self.firstTimePdf, 1, b, b * 2, self.nS).t()
+        res = gauss(self.firstTimePdf, self.nS).t()
         i = np.random.randint(0, self.nOpt)
+        # Make sure sum == 1
         res[:, i] = 1 - (res[:, :i].sum(1) + res[:, i+1:].sum(1))
         return res
 
@@ -129,9 +161,11 @@ if __name__ == "__main__":
 
     p = lba.probs()
     (p.sum()).backward()
+    print("grads: ")
     print(A.grad)
     print(b.grad)
-    print(d.grad)      
+    print(d.grad)
+    print()
     p = p.detach().numpy()
     print('Analytical: ', p)
 
@@ -144,10 +178,10 @@ if __name__ == "__main__":
     plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.timeCDF(t, 0) 
+    f = lba.timeCDF(t, 0)
     plt.plot(t[0], f[0].detach())
     plt.show()
 
-    f = lba.firstTimePdf(t) 
+    f = lba.firstTimePdf(t)
     plt.plot(t[0], f[:, 0, 0].detach())
     plt.show()

@@ -66,11 +66,7 @@ class MLBA_NN(nn.Module):
         x = torch.Tensor(X.tolist()).to(self.device)
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
-        probs = 0
-        for _ in range(30):
-            probs += lba.probs().detach().numpy()
-        probs /= 30
-        return probs
+        return lba.probs().detach().numpy()
 
     def predict_proba_mlba(self, X):
         x = torch.Tensor(X.tolist()).to(self.device)
