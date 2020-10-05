@@ -6,6 +6,7 @@ import scipy.integrate as spi
 from mlba import sample_lba
 
 norm = Normal(0, 1)
+x_, w_ = None, None  # np.polynomial.legendre.leggauss(100)
 
 
 def npdf(x):
@@ -31,7 +32,10 @@ def gauss(f, m):
     """
     from : https://stackoverflow.com/a/37421753/1847988
     """
-    x_, w_ = np.polynomial.legendre.leggauss(100)
+    global x_, w_
+    if x_ is None:
+        x_, w_ = np.polynomial.legendre.leggauss(100)
+
     def zero2MinusOneAndOne(x):
         """
         Changes the interval from [0, 1] to [-1, 1]
