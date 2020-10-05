@@ -44,43 +44,63 @@ def get_freq(x):
     return hist/hist.sum()
 
 
-def eval_model(model, params, idx, evals):
-    h = tuple([(k, idx[k]) for k in idx])
-    if h in evals:
+def get_param_permutations(params, idx, result):
+    h = tuple([(k, params[k][idx[k]]) for k in idx])
+    if h in result:
         return
-    c = {k: params[k][idx[k]] for k in params}
-    mse = []
-    f = 1
-    for train_index, test_index in kf.split(X):
-        m = 0
-        for i in range(5):
-            print('\n' + f'=== Config #{len(evals) + 1} Fold #{f} try #{i+1} - {c}')
-            estimator = model(c)
-            estimator.fit(X[train_index], y[train_index])
-            pred = estimator.predict_proba(X[test_index]).mean(0)
-
-            resp_freq, _ = np.histogram(y, 3)
-            actual = resp_freq / len(y)
-            m += ((actual - pred)**2).mean()
-        mse.append(m/5)
-
-        f += 1
-    evals[h] = mse
-
+    result.add(h)
     for k in params:
         if idx[k] < len(params[k]) - 1:
             idx[k] += 1
-            eval_model(model, params, idx, evals)
+            get_param_permutations(params, idx, result)
             idx[k] -= 1
 
 
-def eval_process(m):
+def eval_fold(m, c, c_id, train_index, test_index, fold):
     model = models[m]['estimator']
+    m = 0
+    for i in range(5):
+        print(
+            '\n' + f'[{os.getpid()}]=== Config #{c_id} Fold #{fold} try #{i+1} - {c}')
+        config = {k: v for k, v in c}
+        np.random.seed(os.getpid() * 100 + i)
+        estimator = model(config)
+        estimator.fit(X[train_index], y[train_index])
+        pred = estimator.predict_proba(X[test_index]).mean(0)
+
+        resp_freq, _ = np.histogram(y, 3)
+        actual = resp_freq / len(y)
+        m += ((actual - pred)**2).mean()
+
+    return m
+
+
+def eval_model(m, c, c_id):
+    f = 1
+    mse = []
+    for train_index, test_index in kf.split(X):
+        m = eval_fold(m, c, c_id, train_index, test_index, f)
+        mse.append(m/5)
+        f += 1
+
+    return mse
+
+
+def cv_model(m, jobs):
     params = models[m]['params']
     idx = {k: 0 for k in params}
 
+    permutations = set()
+    get_param_permutations(params, idx, permutations)
+    permutations = sorted(list(permutations))
+    args = [(m, p, i+1) for i, p in enumerate(permutations)]
     evals = {}
-    eval_model(model, params, idx, evals)
+    with Pool(jobs) as p:
+        results = p.starmap(eval_model, args)
+
+    for h, r in zip(permutations, results):
+        evals[h] = r
+
     file = Path(f'out/cv/{m}.txt')
     file.parent.mkdir(parents=True, exist_ok=True)
     with file.open('w') as f:
@@ -95,4 +115,5 @@ def eval_process(m):
 
     return evals
 
-eval_process(list(models.keys())[-1])
+
+cv_model(list(models.keys())[-1], 5)

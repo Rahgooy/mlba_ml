@@ -93,7 +93,7 @@ markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
 colors = ['r', 'lime', 'b']
 
 
-def save_results(path, actual, pred, mse, names, c):
+def save_results(path, actual, pred, mse, names, c=1):
     plt.figure(figsize=[4.8, 4.8])
     for i in range(3):
         x, y = actual[:, i], pred[:, i]
@@ -113,40 +113,48 @@ def save_results(path, actual, pred, mse, names, c):
         f.write(f'Overall: {mse.mean()}')
 
 
-def evaluate(model_creator, name, n=10, c=1):
-    print(f'[{os.getpid()}] Evaluating {name} ...')
-    dir = Path(f'out/res/{name}')
-    dir.mkdir(parents=True, exist_ok=True)
+def run_model(m, run):
+    print(f'[{os.getpid()}] Run #{run} ...')
+    np.random.seed(os.getpid() * 100 + run)
+    model = models[m]()
+    model.fit(X_train, y_train)
     actual = {}
     pred = {}
     mse = {}
     names = {}
-    for i in range(n):
-        print(f'[{os.getpid()}] Iteration {i} ...')
-        model = model_creator()
-        model.fit(X_train, y_train)
-        for e in experimentData:
-            data = experimentData[e][0]
-            a, p, m, effects = get_predictions(model, data)
+    for e in experimentData:
+        data = experimentData[e][0]
+        a, p, m, effects = get_predictions(model, data)
+        actual[e] = a
+        mse[e] = m
+        pred[e] = p
+        names[e] = effects
 
-            if e not in actual:
-                actual[e] = mse[e] = 0
+    return mse, actual, pred, names
 
-            actual[e] += a
-            mse[e] += m
-            pred[e] = p
-            names[e] = effects
+
+def evaluate(m, n=10, jobs=5):
+    print(f'[{os.getpid()}] Evaluating {m} ...')
+    dir = Path(f'out/res/{m}')
+    dir.mkdir(parents=True, exist_ok=True)
+
+    args = [(m, i+1) for i in range(n)]
+    with Pool(jobs) as p:
+        results = p.starmap(run_model, args)
+
+    actual = {}
+    pred = {}
+    mse = {}
+    names = {}
 
     for e in experimentData:
-        mse[e] /= n
-        actual[e] /= n
-        save_results(dir / f'{name}_{e}',
-                     actual[e], pred[e], mse[e], names[e], c)
+        mse[e] = sum([r[0][e] for r in results]) / n
+        actual[e] = sum([r[1][e] for r in results]) / n
+        pred[e] = sum([r[2][e] for r in results]) / n
+        names[e] = results[0][3][e]
+        save_results(dir / f'{m}_{e}',
+                     actual[e], pred[e], mse[e], names[e])
 
 
-def eval_process(m):
-    evaluate(models[m], m, n=50)
-
-
-with Pool(5) as p:
-    p.map(eval_process, list(models.keys()))
+for m in models:
+    evaluate(m, n=50, jobs=5)

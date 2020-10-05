@@ -41,7 +41,7 @@ class MLBA_NN(nn.Module):
             self.optim = torch.optim.Adam
 
         if torch.cuda.is_available():
-            dev = "cuda:0"
+            dev = "cpu" #"cuda:0"
         else:
             dev = "cpu"
         self.device = torch.device(dev)
