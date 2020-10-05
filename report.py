@@ -13,7 +13,7 @@ def get_counts(data):
     return {e[0]: len(e[1]) for e in data.groupby('Effect')}
 
 
-outDir = Path('out')
+outDir = Path('out/res/')
 
 results = []
 exp_counts = None

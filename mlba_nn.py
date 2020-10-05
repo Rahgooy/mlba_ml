@@ -20,7 +20,7 @@ class MLBA_Params:
 
 
 class MLBA_NN(nn.Module):
-    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001):
+    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam'):
         super(MLBA_NN, self).__init__()
         self.lr = lr
         self.f1 = nn.Linear(n_features, n_hidden)
@@ -33,6 +33,12 @@ class MLBA_NN(nn.Module):
         self.options = n_options
         self.epochs = n_epochs
         self.batch = batch
+        if optim == 'SGD':
+            self.optim = torch.optim.SGD
+        elif optim == 'RMSprop':
+            self.optim = torch.optim.RMSprop
+        else:
+            self.optim = torch.optim.Adam
 
         if torch.cuda.is_available():
             dev = "cuda:0"
@@ -96,7 +102,7 @@ class MLBA_NN(nn.Module):
         dataset = TensorDataset(X_train, y_train)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = self.optim(self.parameters(), lr=self.lr)
         best = float('inf')
         bestModel = None
         for epoch in range(self.epochs):

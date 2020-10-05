@@ -7,7 +7,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn import tree
 import matplotlib.pyplot as plt
-import graphviz
 from sklearn.metrics import r2_score
 import pickle
 from mlp import MLP
@@ -116,7 +115,7 @@ def save_results(path, actual, pred, mse, names, c):
 
 def evaluate(model_creator, name, n=10, c=1):
     print(f'[{os.getpid()}] Evaluating {name} ...')
-    dir = Path(f'out/{name}')
+    dir = Path(f'out/res/{name}')
     dir.mkdir(parents=True, exist_ok=True)
     actual = {}
     pred = {}

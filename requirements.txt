@@ -1,0 +1,7 @@
+docpie
+pathlib
+torchsummary
+sklearn
+pandas
+matplotlib
+graphviz
