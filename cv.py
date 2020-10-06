@@ -39,11 +39,6 @@ X, _, y, _ = train_test_split(X, y, train_size=0.3)
 kf = KFold(n_splits=5)
 
 
-def get_freq(x):
-    hist, _ = np.histogram(x, 3)
-    return hist/hist.sum()
-
-
 def get_param_permutations(params, idx, result):
     h = tuple([(k, params[k][idx[k]]) for k in idx])
     if h in result:
@@ -58,7 +53,7 @@ def get_param_permutations(params, idx, result):
 
 def eval_fold(m, c, c_id, train_index, test_index, fold):
     model = models[m]['estimator']
-    m = 0
+    mse = 0
     for i in range(5):
         print(
             '\n' + f'[{os.getpid()}]=== Config #{c_id} Fold #{fold} try #{i+1} - {c}')
@@ -70,17 +65,16 @@ def eval_fold(m, c, c_id, train_index, test_index, fold):
 
         resp_freq, _ = np.histogram(y, 3)
         actual = resp_freq / len(y)
-        m += ((actual - pred)**2).mean()
+        mse += ((actual - pred)**2).mean()
 
-    return m
+    return mse / 5
 
 
 def eval_model(m, c, c_id):
     f = 1
     mse = []
     for train_index, test_index in kf.split(X):
-        m = eval_fold(m, c, c_id, train_index, test_index, f)
-        mse.append(m/5)
+        mse.append(eval_fold(m, c, c_id, train_index, test_index, f))
         f += 1
 
     return mse

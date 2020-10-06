@@ -40,6 +40,10 @@ def gauss(f, m):
         """
         Changes the interval from [0, 1] to [-1, 1]
         """
+        ones = x == 1
+        if ones.sum() > 0:
+            x[ones] -= 1e-12
+            print('Warning: Encountered values equal to 1')
         y = f(x/(1-x))
         for i in range(y.shape[1]):
             y[:, i, :] /= ((1-x)**2).t()
