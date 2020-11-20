@@ -53,7 +53,7 @@ def get_param_permutations(params, idx, result):
 
 def eval_fold(m, c, c_id, train_index, test_index, fold):
     model = models[m]['estimator']
-    mse = 0
+    err = 0
     for i in range(5):
         print(
             '\n' + f'[{os.getpid()}]=== Config #{c_id} Fold #{fold} try #{i+1} - {c}')
@@ -61,13 +61,17 @@ def eval_fold(m, c, c_id, train_index, test_index, fold):
         np.random.seed(os.getpid() * 100 + i)
         estimator = model(config)
         estimator.fit(X[train_index], y[train_index])
-        pred = estimator.predict_proba(X[test_index]).mean(0)
 
-        resp_freq, _ = np.histogram(y, 3)
-        actual = resp_freq / len(y)
-        mse += ((actual - pred)**2).mean()
+        # pred = estimator.predict_proba(X[test_index]).mean(0)
+        # resp_freq, _ = np.histogram(y, 3)
+        # actual = resp_freq / len(y)
+        # err += ((actual - pred)**2).mean()
 
-    return mse / 5
+        probs = estimator.predict_proba(X[test_index])
+        probs = -np.log(probs[y[test_index]])
+        err += probs.mean()
+
+    return err / 5
 
 
 def eval_model(m, c, c_id):

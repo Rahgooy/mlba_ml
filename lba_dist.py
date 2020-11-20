@@ -156,9 +156,9 @@ class LBA:
 if __name__ == "__main__":
     A = torch.tensor([3.0, 4.0], requires_grad=True)
     b = torch.tensor([10.0, 10.0], requires_grad=True)
-    d = torch.tensor([[2.1, 2.14, 2.18], [1.41, 1.22, 1.18]],
+    d = torch.tensor([[1, 2.14, 2.9], [1.41, 1.22, 1.18]],
                      requires_grad=True)
-    s = torch.tensor([1.0, 1.0], requires_grad=True)
+    s = torch.tensor([4.0, 1.0], requires_grad=True)
 
     lba = LBA(A, b, d, s)
     upper = b.max().item() / d.max().item() * 4
@@ -180,14 +180,27 @@ if __name__ == "__main__":
     resp_freq, _ = np.histogram(resp, 3)
     print('Emprical: ', resp_freq/100000)
 
-    f = lba.timePDF(t, 0)
-    plt.plot(t[0], f[0].detach())
+    for i in range(3):
+        f = lba.timePDF(t, i)
+        plt.plot(t[0], f[0].detach())
+    plt.title('Probability density function of time to reach the threshold')
+    plt.xlabel('Time')
+    plt.ylabel('PDF')
     plt.show()
 
-    f = lba.timeCDF(t, 0)
-    plt.plot(t[0], f[0].detach())
+    for i in range(3):
+        f = lba.timeCDF(t, i)
+        plt.plot(t[0], f[0].detach())
+    plt.title('Cumulative prob. function of time to reach the threshold')
+    plt.xlabel('Time')
+    plt.ylabel('CDF')
+    plt.legend(['A', 'B', 'C'])
     plt.show()
 
     f = lba.firstTimePdf(t)
-    plt.plot(t[0], f[:, 0, 0].detach())
+    plt.plot(t[0], f[:, :, 0].detach())
+    plt.title('Probability density function of first to reach to threshold')
+    plt.xlabel('Time')
+    plt.ylabel('Prob. of choice')
+    plt.legend(['A', 'B', 'C'])
     plt.show()
