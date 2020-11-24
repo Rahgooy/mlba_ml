@@ -40,10 +40,10 @@ class MLBA_NN(nn.Module):
         else:
             self.optim = torch.optim.Adam
 
-        if torch.cuda.is_available():
-            dev = "cpu" #"cuda:0"
-        else:
-            dev = "cpu"
+        # if torch.cuda.is_available():
+        #     dev = "cpu" #"cuda:0"
+        # else:
+        dev = "cpu"
         self.device = torch.device(dev)
 
     def forward(self, X):
@@ -137,7 +137,7 @@ class MLBA_NN(nn.Module):
         return train_loss / len(train_loader)
 
 
-if __name__ == "__main__":
+def runRectangles():
     features = ['Rect1Height', 'Rect1Width', 'Rect2Height',
                 'Rect2Width', 'Rect3Height', 'Rect3Width']
     train_data = pd.read_csv('data/E2.csv')
@@ -145,8 +145,22 @@ if __name__ == "__main__":
     e1b = pd.read_csv('data/E1b.csv')
     e1c = pd.read_csv('data/E1c.csv')
 
+    runExperiment(train_data, features, e1a, e1b, e1c, 'response')
+
+
+def runCriminals():
+    features = ['A1', 'A2', 'B1', 'B2', 'Decoy1', 'Decoy2']
+    train_data = pd.read_csv('data/E4.csv')
+    e1a = pd.read_csv('data/E3a.csv')
+    e1b = pd.read_csv('data/E3b.csv')
+    e1c = pd.read_csv('data/E3c.csv')
+
+    runExperiment(train_data, features, e1a, e1b, e1c, 'resp')
+
+
+def runExperiment(train_data, features, e_a, e_b, e_c, y_name):
     X_train = train_data[features].values
-    y_train = (train_data.response.values - 1)
+    y_train = (train_data[y_name].values - 1)
     model = MLBA_NN(6, 3, 50, 100, 32, 0.001)
     model.fit(X_train, y_train)
 
@@ -163,11 +177,16 @@ if __name__ == "__main__":
     print("train")
     evaluate(X_train, y_train)
 
-    print("e1a")
-    evaluate(e1a[features].values, e1a.response.values - 1)
+    print("e_a")
+    evaluate(e_a[features].values, e_a[y_name].values - 1)
 
-    print("e1b")
-    evaluate(e1b[features].values, e1b.response.values - 1)
+    print("e_b")
+    evaluate(e_b[features].values, e_b[y_name].values - 1)
 
-    print("e1c")
-    evaluate(e1c[features].values, e1c.response.values - 1)
+    print("e_c")
+    evaluate(e_c[features].values, e_c[y_name].values - 1)
+
+
+if __name__ == "__main__":
+    # runRectangles()
+    runCriminals()
