@@ -26,35 +26,37 @@ def load_paper_data(path):
     return data.rename(columns={'Cond': 'Effect'})
 
 
-features = ['Rect1Height', 'Rect1Width', 'Rect2Height',
-            'Rect2Width', 'Rect3Height', 'Rect3Width']
+features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
     # 'logistic_regression': lambda: LogisticRegression(multi_class='multinomial', solver='newton-cg'),
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.01_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.01),
-    'mlba_nn_0.005_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.005),
-    'mlba_nn_0.0005_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.0005),
-    'mlba_nn_0.001_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.001),
-    'mlba_nn_0.001_64': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001),
-    'mlba_nn_0.001_128': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001),
-    'mlba_nn_0.001_32_100': lambda: MLBA_NN(6, 3, 100, epochs, 32, 0.001),
+    'mlba_nn_0.01_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.01, weight_decay=0, dropout=0),
 }
 
-train_data = pd.read_csv('data/E2.csv')
-X_train = train_data[features].values
-y_train = (train_data.response.values - 1)
-
-e1a = pd.read_csv('data/E1a.csv')
-e1b = pd.read_csv('data/E1b.csv')
-e1c = pd.read_csv('data/E1c.csv')
-
 experimentData = {
-    'e1a': (e1a, load_paper_data('hb_mlba/e1a.pred.json')),
-    'e1b': (e1b, load_paper_data('hb_mlba/e1b.pred.json')),
-    'e1c': (e1c, load_paper_data('hb_mlba/e1c.pred.json')),
+    'rectangles': {
+        'name': 'Rectangles',
+        'train': pd.read_csv('data/E2.csv'),
+        'test': {'e1a': pd.read_csv('data/E1a.csv'),
+                 'e1b': pd.read_csv('data/E1b.csv'),
+                 'e1c': pd.read_csv('data/E1c.csv')},
+        # 'paper': {'e1a': load_paper_data('hb_mlba/e1a.pred.json'),
+        #           'e1b': load_paper_data('hb_mlba/e1b.pred.json'),
+        #           'e1c': load_paper_data('hb_mlba/e1c.pred.json'), }
+    },
+    'criminal': {
+        'name': 'Criminal',
+        'train': pd.read_csv('data/E4.csv'),
+        'test': {'e3a': pd.read_csv('data/E3a.csv'),
+                 'e3b': pd.read_csv('data/E3b.csv'),
+                 'e3c': pd.read_csv('data/E3c.csv')},
+        # 'paper': {'e3a': load_paper_data('hb_mlba/e3a.pred.json'),
+        #           'e3b': load_paper_data('hb_mlba/e3b.pred.json'),
+        #           'e3c': load_paper_data('hb_mlba/e3c.pred.json'), }
+    }
 }
 
 
@@ -113,17 +115,20 @@ def save_results(path, actual, pred, mse, names, c=1):
         f.write(f'Overall: {mse.mean()}')
 
 
-def run_model(m, run):
+def run_model(m, exp, run):
     print(f'[{os.getpid()}] Run #{run} ...')
     np.random.seed(os.getpid() * 100 + run)
+    X_train = exp['train'][features].values
+    y_train = (exp['train'].response.values - 1)
+
     model = models[m]()
     model.fit(X_train, y_train)
     actual = {}
     pred = {}
     mse = {}
     names = {}
-    for e in experimentData:
-        data = experimentData[e][0]
+    for e in exp['test']:
+        data = exp['test'][e]
         a, p, m, effects = get_predictions(model, data)
         actual[e] = a
         mse[e] = m
@@ -133,8 +138,8 @@ def run_model(m, run):
     return mse, actual, pred, names
 
 
-def evaluate(m, n=10, jobs=5):
-    print(f'[{os.getpid()}] Evaluating {m} ...')
+def evaluate(exp, m, n=10, jobs=5):
+    print(f'[{os.getpid()}] Evaluating {m} on {exp['name']} data...')
     dir = Path(f'out/res/{m}')
     dir.mkdir(parents=True, exist_ok=True)
 
@@ -147,7 +152,7 @@ def evaluate(m, n=10, jobs=5):
     mse = {}
     names = {}
 
-    for e in experimentData:
+    for e in exp['test']:
         mse[e] = sum([r[0][e] for r in results]) / n
         actual[e] = sum([r[1][e] for r in results]) / n
         pred[e] = sum([r[2][e] for r in results]) / n
@@ -156,5 +161,10 @@ def evaluate(m, n=10, jobs=5):
                      actual[e], pred[e], mse[e], names[e])
 
 
-for m in models:
-    evaluate(m, n=50, jobs=5)
+def run_rectangles():
+    for m in models:
+        evaluate(experimentData['rectangles'], m, n=50, jobs=5)
+
+def run_rectangles():
+    for m in models:
+        evaluate(experimentData['criminals'], m, n=50, jobs=5)
