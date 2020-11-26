@@ -7,15 +7,12 @@ from mlba import sample_lba
 from profiling import global_profiler as profiler, profile
 
 
-norm = Normal(0, 1)
-x_, w_ = None, None  # np.polynomial.legendre.leggauss(100)
-
-
 def npdf(x):
     return 1/np.sqrt(2*np.pi) * torch.exp(-0.5 * x**2)
 
 
 def ncdf(x):
+    norm = Normal(0, 1)
     return norm.cdf(x)
 
 
@@ -31,13 +28,11 @@ def simps(f, a, b, n, m):
 
 
 @profile
-def gauss(f, m):
+def gauss(f, m, approx_n):
     """
     from : https://stackoverflow.com/a/37421753/1847988
     """
-    global x_, w_
-    if x_ is None:
-        x_, w_ = np.polynomial.legendre.leggauss(25)
+    x_, w_ = np.polynomial.legendre.leggauss(approx_n)
 
     def zero2MinusOneAndOne(x):
         """
@@ -82,13 +77,14 @@ class LBA:
     d: The Array of Mean drift rates
     s: The Standard deviation of drift rates    """
 
-    def __init__(self, A, b, d, s):
+    def __init__(self, A, b, d, s, aprroximation_degree=100):
         self.A = A if A.dim() == 1 else A.view(-1)
         self.b = b if b.dim() == 1 else b.view(-1)
         self.s = s if s.dim() == 1 else s.view(-1)
         self.d = d if d.dim() == 2 else d.view(1, -1)
         self.nOpt = self.d.shape[1]
         self.nS = self.d.shape[0]
+        self.approx_n = aprroximation_degree
 
     def timeCDF(self, t, i):
         if not isinstance(t, torch.Tensor):
@@ -151,9 +147,9 @@ class LBA:
                     res[i] *= 1 - cdf[j].t()
         return torch.stack(res, 1)
 
-    @profile('LBA probs approximation')
+    @profile('LBA.probs')
     def probs(self):
-        res = gauss(self.firstTimePdf, self.nS).t()
+        res = gauss(self.firstTimePdf, self.nS, self.approx_n).t()
         i = np.random.randint(0, self.nOpt)
         # Make sure sum == 1
         res[:, i] = 1 - (res[:, :i].sum(1) + res[:, i+1:].sum(1))

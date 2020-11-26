@@ -85,7 +85,7 @@ class MLBA_NN(nn.Module):
     def loss(self, X, y):
         params = self.forward(X)
         nll = 0.0
-        lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
+        lba = LBA(params.A, params.b, params.mu_d, params.sigma_d, 25)
         probs = lba.probs()
         nll = nn.NLLLoss()
         resp_freq, _ = np.histogram(y, 3)
@@ -210,13 +210,13 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
         resp_freq, _ = np.histogram(y, 3)
         probs = resp_freq / X.shape[0]
         probs1 = model.predict_proba(X).mean(0)
-        probs2 = model.predict_proba_mlba(X).mean(0)
+        # probs2 = model.predict_proba_mlba(X).mean(0)
 
         print("Actual:", probs)
         print("Predicted directly:", probs1,
               "MSE:", mse(probs, probs1))
-        print("Predicted simulated:", probs2,
-              "MSE:", mse(probs, probs2))
+        # print("Predicted simulated:", probs2,
+        #       "MSE:", mse(probs, probs2))
 
     print("train")
     evaluate(scaler.transform(X_train[features].values), y_train)
@@ -259,7 +259,7 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=10, epochs=200, batch=128, lr=0.001,
+    runRectangles(n_hidden=10, epochs=50, batch=128, lr=0.001,
                   weight_decay=0, dropout=0, early_stop=True, alpha=0.01)
     # runCriminals(n_hidden=50, epochs=100, batch=128, lr=0.001,
     #              weight_decay=0.1, dropout=0, early_stop=True, alpha=1)

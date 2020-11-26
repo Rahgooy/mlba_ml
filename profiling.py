@@ -48,13 +48,17 @@ global_profiler = Profiler(False)
 def profile(func, profiler=global_profiler):
     """Wraps specified functions of an object with start and finish"""
     if not profiler.enabled:
-        return func
+        return func if callable(func) else lambda f: f
+        
+    name = func.__name__ if callable(func) else func
 
-    def wrap(*args, **kwargs):
-        profiler.start(func.__name__)
-        result = func(*args, **kwargs)
-        profiler.finish(func.__name__)
-        return result
-
-    wrap.__name__ = func.__name__
-    return wrap
+    def decorator(f):
+        def wrap(*args, **kwargs):
+            profiler.start(name)
+            result = f(*args, **kwargs)
+            profiler.finish(name)
+            return result
+        wrap.__name__ = f.__name__
+        return wrap
+    # if callable return the wrapper. If name, return the decorator to create a wrapper...
+    return decorator(func) if callable(func) else decorator
