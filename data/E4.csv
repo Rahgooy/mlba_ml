@@ -1,4 +1,4 @@
-Sub,Effect,Trial,A1,A2,B1,B2,C1,C2,response,choice,RT
+Sub,Effect,Trial,A1,A2,B1,B2,C1,C2,resp,response,RT
 2,AttR2,2,2.3,4.6,4.4,2.5,4.4,1.8,3,2,24.993
 2,SimB2,2,4.3,2.7,3.4,3.6,3.2,3.8,2,2,39.567
 2,SimB1,3,4.4,2.6,3.5,3.5,4.5,2.5,3,2,22.32

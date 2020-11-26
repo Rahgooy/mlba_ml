@@ -1,4 +1,4 @@
-Sub,Effect,Trial,A1,A2,B1,B2,C1,C2,response,choice,RT
+Sub,Effect,Trial,A1,A2,B1,B2,C1,C2,resp,response,RT
 2,AttR1,3,3.5,6.5,6.6,3.4,2.9,6.5,2,2,70.7
 2,AttF1,4,3.5,6.4,6.7,3.2,3.5,5.7,3,2,48.404
 2,AttRF2,6,3.6,6.6,6.9,3.3,6.3,2.8,1,2,49.619

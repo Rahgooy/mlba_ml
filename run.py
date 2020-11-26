@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
 from sklearn import tree
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
@@ -26,6 +27,12 @@ def load_paper_data(path):
     return data.rename(columns={'Cond': 'Effect'})
 
 
+def split(X, y, test_size):
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y.reshape(-1, 1), test_size=test_size)
+    return [X_train, y_train, X_val, y_val]
+
+
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
@@ -33,11 +40,40 @@ models = {
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.01_32': lambda: MLBA_NN(6, 3, 50, epochs, 32, 0.01, weight_decay=0, dropout=0),
+    'mlba_nn_0.001_10_wc_0_d_0_alpha_1_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
+    },
+    'mlba_nn_0.001_50_wc_0_d_0_alpha_1_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
+    },
+    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.5_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
+    },
+    'mlba_nn_0.001_50_wc_0_d_0_alpha_0.5_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
+    },
+    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.01_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.01),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+    },
+    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.5_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+    },
 }
 
 experimentData = {
-    'rectangles': {
+    'Rectangles': {
         'name': 'Rectangles',
         'train': pd.read_csv('data/E2.csv'),
         'test': {'e1a': pd.read_csv('data/E1a.csv'),
@@ -47,8 +83,8 @@ experimentData = {
         #           'e1b': load_paper_data('hb_mlba/e1b.pred.json'),
         #           'e1c': load_paper_data('hb_mlba/e1c.pred.json'), }
     },
-    'criminal': {
-        'name': 'Criminal',
+    'Criminals': {
+        'name': 'Criminals',
         'train': pd.read_csv('data/E4.csv'),
         'test': {'e3a': pd.read_csv('data/E3a.csv'),
                  'e3b': pd.read_csv('data/E3b.csv'),
@@ -121,8 +157,9 @@ def run_model(m, exp, run):
     X_train = exp['train'][features].values
     y_train = (exp['train'].response.values - 1)
 
-    model = models[m]()
-    model.fit(X_train, y_train)
+    model = models[m]['model']()
+    params = models[m]['params'](X_train, y_train)
+    model.fit(*params)
     actual = {}
     pred = {}
     mse = {}
@@ -138,12 +175,13 @@ def run_model(m, exp, run):
     return mse, actual, pred, names
 
 
-def evaluate(exp, m, n=10, jobs=5):
-    print(f'[{os.getpid()}] Evaluating {m} on {exp['name']} data...')
-    dir = Path(f'out/res/{m}')
+def evaluate(m, n=10, jobs=5):
+    exp = experimentData[models[m]['data']]
+    print(f'[{os.getpid()}] Evaluating {m} on {exp["name"]} data...')
+    dir = Path(f'out/res/{m}/{exp["name"]}')
     dir.mkdir(parents=True, exist_ok=True)
 
-    args = [(m, i+1) for i in range(n)]
+    args = [(m, exp, i+1) for i in range(n)]
     with Pool(jobs) as p:
         results = p.starmap(run_model, args)
 
@@ -161,10 +199,10 @@ def evaluate(exp, m, n=10, jobs=5):
                      actual[e], pred[e], mse[e], names[e])
 
 
-def run_rectangles():
+def run():
     for m in models:
-        evaluate(experimentData['rectangles'], m, n=50, jobs=5)
+        evaluate(m, n=50, jobs=50)
 
-def run_rectangles():
-    for m in models:
-        evaluate(experimentData['criminals'], m, n=50, jobs=5)
+
+if __name__ == "__main__":
+    run()
