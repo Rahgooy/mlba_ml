@@ -79,9 +79,9 @@ experimentData = {
         'test': {'e1a': pd.read_csv('data/E1a.csv'),
                  'e1b': pd.read_csv('data/E1b.csv'),
                  'e1c': pd.read_csv('data/E1c.csv')},
-        # 'paper': {'e1a': load_paper_data('hb_mlba/e1a.pred.json'),
-        #           'e1b': load_paper_data('hb_mlba/e1b.pred.json'),
-        #           'e1c': load_paper_data('hb_mlba/e1c.pred.json'), }
+        'paper': {'e1a': load_paper_data('hb_mlba/e1a.pred.json'),
+                  'e1b': load_paper_data('hb_mlba/e1b.pred.json'),
+                  'e1c': load_paper_data('hb_mlba/e1c.pred.json'), }
     },
     'Criminals': {
         'name': 'Criminals',
@@ -89,9 +89,9 @@ experimentData = {
         'test': {'e3a': pd.read_csv('data/E3a.csv'),
                  'e3b': pd.read_csv('data/E3b.csv'),
                  'e3c': pd.read_csv('data/E3c.csv')},
-        # 'paper': {'e3a': load_paper_data('hb_mlba/e3a.pred.json'),
-        #           'e3b': load_paper_data('hb_mlba/e3b.pred.json'),
-        #           'e3c': load_paper_data('hb_mlba/e3c.pred.json'), }
+        'paper': {'e3a': load_paper_data('hb_mlba/e3a.pred.json'),
+                  'e3b': load_paper_data('hb_mlba/e3b.pred.json'),
+                  'e3c': load_paper_data('hb_mlba/e3c.pred.json'), }
     }
 }
 
@@ -131,12 +131,13 @@ markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
 colors = ['r', 'lime', 'b']
 
 
-def save_results(path, actual, pred, mse, names, c=1):
+def save_results(path, actual, pred, mse, names, paper_pred):
     plt.figure(figsize=[4.8, 4.8])
     for i in range(3):
-        x, y = actual[:, i], pred[:, i]
+        x, y, paper_y = actual[:, i], pred[:, i], paper_pred[:, i]
         for j in range(len(x)):
-            plt.scatter(x[j], y[j], marker=markers[i], c=colors[c])
+            plt.scatter(x[j], y[j], marker=markers[0], c=colors[0])
+            plt.scatter(x[j], paper_y[j], marker=markers[0], c=colors[1])
     plt.xlabel('Actual')
     plt.ylabel('Prediction')
     plt.plot([0, 1], [0, 1])
@@ -149,6 +150,10 @@ def save_results(path, actual, pred, mse, names, c=1):
         for i in range(len(names)):
             f.write(f'{names[i]}: {mse[i]}\n')
         f.write(f'Overall: {mse.mean()}')
+
+    with path.with_name(path.name + '_preds.txt').open(mode='w') as f:
+        for i in range(len(names)):
+            f.write(f'{names[i]}, {actual[i]}, {pred[i]}, {paper_pred[i]}\n')
 
 
 def run_model(m, exp, run):
@@ -185,23 +190,22 @@ def evaluate(m, n=10, jobs=5):
     with Pool(jobs) as p:
         results = p.starmap(run_model, args)
 
-    actual = {}
-    pred = {}
-    mse = {}
-    names = {}
-
     for e in exp['test']:
-        mse[e] = sum([r[0][e] for r in results]) / n
-        actual[e] = sum([r[1][e] for r in results]) / n
-        pred[e] = sum([r[2][e] for r in results]) / n
-        names[e] = results[0][3][e]
-        save_results(dir / f'{m}_{e}',
-                     actual[e], pred[e], mse[e], names[e])
+        mse = sum([r[0][e] for r in results]) / n
+        actual = sum([r[1][e] for r in results]) / n
+        pred = sum([r[2][e] for r in results]) / n
+        names = results[0][3][e]
+        paper_data = exp['paper'][e]
+        p_pred = np.array([paper_data[paper_data.Effect == eff][[
+                          'Resp.O1', 'Resp.O2', 'Resp.O3']].values.mean(0) for eff in names])
+
+        save_results(dir / f'{m}_{e}', actual, pred, mse, names, p_pred)
 
 
 def run():
     for m in models:
         evaluate(m, n=50, jobs=50)
+        break
 
 
 if __name__ == "__main__":
