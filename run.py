@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn import tree
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
@@ -30,7 +31,10 @@ def load_paper_data(path):
 def split(X, y, test_size):
     X_train, X_val, y_train, y_val = train_test_split(
         X, y.reshape(-1, 1), test_size=test_size)
-    return [X_train, y_train, X_val, y_val]
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_val = scaler.transform(X_val)
+    return [scaler, X_train, y_train, X_val, y_val]
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -40,32 +44,32 @@ models = {
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.001_10_wc_0_d_0_alpha_1_crim': {
+    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_1_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
     },
-    'mlba_nn_0.001_50_wc_0_d_0_alpha_1_crim': {
+    'mlba_nn_0.001_50_128_wc_0_d_0_alpha_1_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
     },
-    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.5_crim': {
+    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.5_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
     },
-    'mlba_nn_0.001_50_wc_0_d_0_alpha_0.5_crim': {
+    'mlba_nn_0.001_50_128_wc_0_d_0_alpha_0.5_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
     },
-    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.01_rect': {
+    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.01_rect': {
         'data': 'Rectangles',
         'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.01),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
     },
-    'mlba_nn_0.001_10_wc_0_d_0_alpha_0.5_rect': {
+    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.5_rect': {
         'data': 'Rectangles',
         'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
@@ -101,22 +105,22 @@ def get_freq(x):
     return hist/hist.sum()
 
 
-def predict(model, data):
-    X_test = data[features].values
+def predict(model, data, scaler):
+    X_test = scaler.transform(data[features].values)
     y_test = data.response.values - 1
     actual_freq = get_freq(y_test)
     pred_freq = model.predict_proba(X_test).mean(0)
     return actual_freq, pred_freq, ((actual_freq - pred_freq) ** 2).mean()
 
 
-def get_predictions(model, data):
+def get_predictions(model, data, scaler):
     effects = data.groupby('Effect')
     effects_data = [d for _, d in effects]
     MSE = []
     actual = []
     pred = []
     for d in effects_data:
-        actual_freq, pred_freq, mse = predict(model, d)
+        actual_freq, pred_freq, mse = predict(model, d, scaler)
         MSE.append(mse)
         actual.append(actual_freq)
         pred.append(pred_freq)
@@ -164,6 +168,8 @@ def run_model(m, exp, run):
 
     model = models[m]['model']()
     params = models[m]['params'](X_train, y_train)
+    scaler = params[0]
+    params = params[1:]
     model.fit(*params)
     actual = {}
     pred = {}
@@ -171,7 +177,7 @@ def run_model(m, exp, run):
     names = {}
     for e in exp['test']:
         data = exp['test'][e]
-        a, p, m, effects = get_predictions(model, data)
+        a, p, m, effects = get_predictions(model, data, scaler)
         actual[e] = a
         mse[e] = m
         pred[e] = p
