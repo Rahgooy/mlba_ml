@@ -4,4 +4,4 @@ torchsummary
 sklearn
 pandas
 matplotlib
-graphviz
+tabulate

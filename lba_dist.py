@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as spi
 from mlba import sample_lba
+from profiling import global_profiler as profiler, profile
+
 
 norm = Normal(0, 1)
 x_, w_ = None, None  # np.polynomial.legendre.leggauss(100)
@@ -28,13 +30,14 @@ def simps(f, a, b, n, m):
     return S
 
 
+@profile
 def gauss(f, m):
     """
     from : https://stackoverflow.com/a/37421753/1847988
     """
     global x_, w_
     if x_ is None:
-        x_, w_ = np.polynomial.legendre.leggauss(100)
+        x_, w_ = np.polynomial.legendre.leggauss(25)
 
     def zero2MinusOneAndOne(x):
         """
@@ -44,9 +47,11 @@ def gauss(f, m):
         if ones.sum() > 0:
             x[ones] -= 1e-12
             print('Warning: Encountered values equal to 1')
+
         y = f(x/(1-x))
         for i in range(y.shape[1]):
             y[:, i, :] /= ((1-x)**2).t()
+
         return y
 
     def inf2MinusOneAndOne(x):
@@ -60,6 +65,7 @@ def gauss(f, m):
     x = torch.tensor(x)
     w = torch.tensor(w)
     y = inf2MinusOneAndOne(x)
+
     for i in range(y.shape[1]):
         y[:, i, :] *= w
 
@@ -145,6 +151,7 @@ class LBA:
                     res[i] *= 1 - cdf[j].t()
         return torch.stack(res, 1)
 
+    @profile('LBA probs approximation')
     def probs(self):
         res = gauss(self.firstTimePdf, self.nS).t()
         i = np.random.randint(0, self.nOpt)
@@ -158,7 +165,7 @@ if __name__ == "__main__":
     b = torch.tensor([10.0, 10.0], requires_grad=True)
     d = torch.tensor([[1, 2.14, 2.9], [1.41, 1.22, 1.18]],
                      requires_grad=True)
-    s = torch.tensor([4.0, 1.0], requires_grad=True)
+    s = torch.tensor([1.0, 1.0], requires_grad=True)
 
     lba = LBA(A, b, d, s)
     upper = b.max().item() / d.max().item() * 4
