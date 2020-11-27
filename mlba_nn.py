@@ -91,8 +91,8 @@ class MLBA_NN(nn.Module):
         resp_freq, _ = np.histogram(y, 3)
         target = self.__tensor(resp_freq / X.shape[0], torch.float)
         pred = probs.mean(0)
-
-        return self.alpha * nll(torch.log(probs), y.view(-1)) + (1 - self.alpha) * ((target - pred)**2).mean()
+        log_probs = torch.log(probs + 1e-12) # avoid nans
+        return self.alpha * nll(log_probs, y.view(-1)) + (1 - self.alpha) * ((target - pred)**2).mean()
 
     def mse(self, X, y):
         hist, _ = np.histogram(y, self.options)
