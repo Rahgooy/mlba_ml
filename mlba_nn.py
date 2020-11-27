@@ -24,7 +24,7 @@ class MLBA_Params:
 
 class MLBA_NN(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
-                 weight_decay=0, dropout=0, alpha=0.01):
+                 weight_decay=0, dropout=0):
         super(MLBA_NN, self).__init__()
         self.lr = lr
         self.weight_decay = weight_decay
@@ -43,7 +43,6 @@ class MLBA_NN(nn.Module):
         self.options = n_options
         self.epochs = n_epochs
         self.batch = batch
-        self.alpha = alpha
         if optim == 'SGD':
             self.optim = torch.optim.SGD
         elif optim == 'RMSprop':
@@ -84,21 +83,11 @@ class MLBA_NN(nn.Module):
     @profile
     def loss(self, X, y):
         params = self.forward(X)
-        nll = 0.0
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d, 25)
         probs = lba.probs()
         nll = nn.NLLLoss()
-        resp_freq, _ = np.histogram(y, 3)
-        target = self.__tensor(resp_freq / X.shape[0], torch.float)
-        pred = probs.mean(0)
-        log_probs = torch.log(probs + 1e-12) # avoid nans
-        return self.alpha * nll(log_probs, y.view(-1)) + (1 - self.alpha) * ((target - pred)**2).mean()
-
-    def mse(self, X, y):
-        hist, _ = np.histogram(y, self.options)
-        actual_freq = hist/X.shape[0]
-        pred_freq = self.predict_proba(X).mean(0)
-        return mse(actual_freq, pred_freq)
+        log_probs = torch.log(probs + 1e-12)  # avoid nans
+        return nll(log_probs, y.view(-1))
 
     def predict_proba(self, X):
         x = torch.Tensor(X.tolist()).to(self.device)
@@ -127,7 +116,7 @@ class MLBA_NN(nn.Module):
     def fit(self, X, y, X_val=None, y_val=None, early_stop=False):
         X = self.__tensor(X.tolist(), torch.float)
         y = self.__tensor(y.tolist(), torch.long)
-        if early_stop:
+        if X_val is not None and y_val is not None:
             X_val = self.__tensor(X_val.tolist(), torch.float)
             y_val = self.__tensor(y_val.tolist(), torch.long)
 
@@ -140,20 +129,18 @@ class MLBA_NN(nn.Module):
         best_model = None
         for epoch in range(self.epochs):
             train_loss = self.__train_step(optimizer, train_loader)
-            val_loss, val_mse = None, None
+            val_loss = float('inf')
             if X_val is not None and y_val is not None:
                 val_loss = self.loss(X_val, y_val).item()
-                val_mse = self.mse(X_val, y_val)
-                if val_mse < best and epoch > self.epochs/5:  # burnin
-                    best = val_mse
+                if val_loss < best and epoch > self.epochs/5:  # burnin
+                    best = val_loss
                     best_model = copy.deepcopy(self)
 
             if epoch % 5 == 0:
                 print(
                     f"[{os.getpid()}] {time.asctime()} >  Epoch {epoch:5d} - Loss: {train_loss: 10.9f}, " +
-                    f"MSE: {self.mse(X, y): 10.8f}, val Loss: {val_loss:10.6f}, " +
-                    f"val MSE: {self.mse(X_val, y_val): 10.6f}, " +
-                    f"Best MSE: {best:10.6f}"
+                    f"val Loss: {val_loss:10.6f}, " +
+                    f"Best: {best:10.6f}"
                 )
         if early_stop:
             self.load_state_dict(best_model.state_dict())
@@ -173,27 +160,27 @@ class MLBA_NN(nn.Module):
         return train_loss / len(train_loader)
 
 
-def runRectangles(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop, alpha):
+def runRectangles(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
     train_data = pd.read_csv('data/E2.csv')
     e1a = pd.read_csv('data/E1a.csv')
     e1b = pd.read_csv('data/E1b.csv')
     e1c = pd.read_csv('data/E1c.csv')
 
     runExperiment(train_data, e1a, e1b, e1c, n_hidden, epochs,
-                  batch, lr, weight_decay, dropout, early_stop, alpha)
+                  batch, lr, weight_decay, dropout, early_stop)
 
 
-def runCriminals(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop, alpha):
+def runCriminals(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
     train_data = pd.read_csv('data/E4.csv')
     e1a = pd.read_csv('data/E3a.csv')
     e1b = pd.read_csv('data/E3b.csv')
     e1c = pd.read_csv('data/E3c.csv')
 
     runExperiment(train_data, e1a, e1b, e1c, n_hidden, epochs,
-                  batch, lr,  weight_decay, dropout, early_stop, alpha)
+                  batch, lr,  weight_decay, dropout, early_stop)
 
 
-def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop, alpha):
+def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
     features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
     X = train_data
     y = (train_data.response.values - 1)
@@ -202,66 +189,54 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
     scaler = StandardScaler()
 
     model = MLBA_NN(6, 3, n_hidden=n_hidden, n_epochs=epochs, batch=batch, lr=lr,
-                    weight_decay=weight_decay, dropout=dropout, alpha=alpha)
+                    weight_decay=weight_decay, dropout=dropout)
     model.fit(scaler.fit_transform(X_train[features].values), y_train,
               scaler.transform(X_val[features].values), y_val, early_stop)
 
-    def evaluate(X, y):
+    def evaluate(X, y, print_):
         resp_freq, _ = np.histogram(y, 3)
         probs = resp_freq / X.shape[0]
         probs1 = model.predict_proba(X).mean(0)
         # probs2 = model.predict_proba_mlba(X).mean(0)
-
-        print("Actual:", probs)
-        print("Predicted directly:", probs1,
-              "MSE:", mse(probs, probs1))
+        if print_:
+            print("Actual:", probs)
+            print("Predicted directly:", probs1,
+                  "MSE:", mse(probs, probs1))
         # print("Predicted simulated:", probs2,
         #       "MSE:", mse(probs, probs2))
+        return mse(probs, probs1)
+
+    def per_effect(X, y, scaler):
+        effects = X.groupby('Effect')
+        overall = 0
+        for e, d in effects:
+            eff = X.Effect.str.startswith(e)
+            overall += evaluate(scaler.transform(
+                X[features].values[eff]), y[eff], False)
+        print("Overall:", overall/len(effects))
 
     print("train")
-    evaluate(scaler.transform(X_train[features].values), y_train)
-
-    print("train_a")
-    eff = X_train.Effect.str.startswith('Att')
-    evaluate(scaler.transform(X_train[features].values[eff]), y_train[eff])
-
-    print("train_b")
-    eff = X_train.Effect.str.startswith('Com')
-    evaluate(scaler.transform(X_train[features].values[eff]), y_train[eff])
-
-    print("train_c")
-    eff = X_train.Effect.str.startswith('Sim')
-    evaluate(scaler.transform(X_train[features].values[eff]), y_train[eff])
+    evaluate(scaler.transform(X_train[features].values), y_train, True)
+    per_effect(X_train, y_train, scaler)
 
     print("\nval")
-    evaluate(scaler.transform(X_val[features].values), y_val)
-
-    print("val_a")
-    eff = X_val.Effect.str.startswith('Att')
-    evaluate(scaler.transform(X_val[features].values[eff]), y_val[eff])
-
-    print("val_b")
-    eff = X_val.Effect.str.startswith('Com')
-    evaluate(scaler.transform(X_val[features].values[eff]), y_val[eff])
-
-    print("val_c")
-    eff = X_val.Effect.str.startswith('Sim')
-    evaluate(scaler.transform(X_val[features].values[eff]), y_val[eff])
+    evaluate(scaler.transform(X_val[features].values), y_val, True)
+    per_effect(X_val, y_val, scaler)
 
     print("\ne_a")
-    evaluate(scaler.transform(e_a[features].values), e_a.response.values - 1)
+    per_effect(e_a, e_a.response.values - 1, scaler)
 
     print("e_b")
-    evaluate(scaler.transform(e_b[features].values), e_b.response.values - 1)
+    per_effect(e_b, e_b.response.values - 1, scaler)
 
     print("e_c")
-    evaluate(scaler.transform(e_c[features].values), e_c.response.values - 1)
+    per_effect(e_b, e_b.response.values - 1, scaler)
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=10, epochs=50, batch=128, lr=0.001,
-                  weight_decay=0, dropout=0, early_stop=True, alpha=0.01)
-    # runCriminals(n_hidden=50, epochs=100, batch=128, lr=0.001,
-    #              weight_decay=0.1, dropout=0, early_stop=True, alpha=1)
+    runRectangles(n_hidden=50, epochs=50, batch=512, lr=0.001,
+                  weight_decay=0.1, dropout=0, early_stop=True)
+    # runCriminals(n_hidden=50, epochs=50, batch=128, lr=0.001,
+    #              weight_decay=0.1, dropout=0, early_stop=True, alpha=0.01)
 
     profiler.print_profile()
