@@ -22,7 +22,7 @@ def get_stats(model_path, exp):
     exp_list = rect_exp if exp == 'Rectangles' else crim_exp
     for e, data in exp_list:
         f = f'{model_path.name}_{e}_mse.txt'
-        f = model_path / exp / f
+        f = model_path / f
         if not f.exists():
             continue
         counts = get_counts(data)
@@ -40,14 +40,15 @@ def get_stats(model_path, exp):
 
 
 def print_results(exp):
-    outDir = Path('out/res/')
+    outDir = Path(f'out/res/{exp}')
     results = []
     exp_counts = None
     for model in outDir.iterdir():
         if model.is_dir():
             modelMSE, overall = get_stats(model, exp)
-            res = [model.name] + [m[0] for m in modelMSE] + [overall]
-            results.append(res)
+            if overall:
+                res = [model.name] + [m[0] for m in modelMSE] + [overall]
+                results.append(res)
             if exp_counts is None:
                 exp_counts = [m[1] for m in modelMSE]
 

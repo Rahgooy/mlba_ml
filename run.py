@@ -44,34 +44,14 @@ models = {
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    # 'mlba_nn_0.001_10_128_wc_0_d_0_alpha_1_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
-    # },
-    'mlba_nn_0.001_50_128_wc_0_d_0_alpha_1_crim': {
+    'mlba_nn_0.001_50_64_wc_0_d_0_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=1),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
-    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.5_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
-    },
-    'mlba_nn_0.001_50_128_wc_0_d_0_alpha_0.5_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.2) + [True],
-    },
-    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.01_rect': {
+    'mlba_nn_0.001_50_64_wc_0_d_0_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.01),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
-    },
-    'mlba_nn_0.001_10_128_wc_0_d_0_alpha_0.5_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 10, epochs, 128, 0.001, weight_decay=0, dropout=0, alpha=0.5),
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
     },
 }
@@ -189,7 +169,7 @@ def run_model(m, exp, run):
 def evaluate(m, n=10, jobs=5):
     exp = experimentData[models[m]['data']]
     print(f'[{os.getpid()}] Evaluating {m} on {exp["name"]} data...')
-    dir = Path(f'out/res/{m}/{exp["name"]}')
+    dir = Path(f'out/res/{exp["name"]}/{m}/')
     dir.mkdir(parents=True, exist_ok=True)
 
     args = [(m, exp, i+1) for i in range(n)]
@@ -210,7 +190,7 @@ def evaluate(m, n=10, jobs=5):
 
 def run():
     for m in models:
-        evaluate(m, n=50, jobs=50)
+        evaluate(m, n=1, jobs=1)
 
 
 if __name__ == "__main__":

@@ -30,9 +30,8 @@ class MLBA_NN(nn.Module):
         self.weight_decay = weight_decay
         self.f1 = nn.Linear(n_features, n_hidden)
         self.f2 = nn.Linear(n_hidden, n_hidden)
-        self.f3 = nn.Linear(n_hidden, n_hidden)
         # mu_d for each option and A, b, sigma_d
-        self.f4 = nn.Linear(n_hidden, n_options + 3)
+        self.linear_out = nn.Linear(n_hidden, n_options + 3)
         self.softPlus = nn.Softplus()
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -67,11 +66,7 @@ class MLBA_NN(nn.Module):
         x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
-        x = self.f3(x)
-        x = self.batch_norm(x)
-        x = self.dropout(x)
-        x = self.tanh(x)
-        x = self.f4(x)
+        x = self.linear_out(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
         sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
