@@ -52,8 +52,10 @@ def print_results(exp):
             if exp_counts is None:
                 exp_counts = [m[1] for m in modelMSE]
 
-    print("\n" * 5)
+    print("\n")
+    print(exp)
     print("Counts:", exp_counts)
+    results = sorted(results, key=lambda x: x[-1])
     h = ['Model', "E1a", "E1b", "E1c", "Overall"] if exp == 'Rectangles' else [
         'Model', "E3a", "E3b", "E3c", "Overall"]
     print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".4f"))
