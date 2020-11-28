@@ -150,10 +150,8 @@ class LBA:
     @profile('LBA.probs')
     def probs(self):
         res = gauss(self.firstTimePdf, self.nS, self.approx_n).t()
-        i = np.random.randint(0, self.nOpt)
-        # Make sure sum == 1
-        res[:, i] = 1 - (res[:, :i].sum(1) + res[:, i+1:].sum(1))
-        return res
+        res.clip(0)  # due to approx error we may ancounter very small negative
+        return res / res.sum(1).view(-1, 1) # Normalize to 1(due to approx error)
 
 
 if __name__ == "__main__":
