@@ -49,8 +49,7 @@ def print_results(exp):
             if overall:
                 res = [model.name] + [m[0] for m in modelMSE] + [overall]
                 results.append(res)
-            if exp_counts is None:
-                exp_counts = [m[1] for m in modelMSE]
+            exp_counts = [m[1] for m in modelMSE]
 
     print("\n")
     print(exp)

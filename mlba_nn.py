@@ -22,6 +22,14 @@ class MLBA_Params:
         self.b = b
 
 
+class DummyScaler:
+    def transform(self, x):
+        return x
+
+    def fit_transform(self, x):
+        return x
+
+
 class MLBA_NN(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
                  weight_decay=0, dropout=0):
@@ -69,8 +77,9 @@ class MLBA_NN(nn.Module):
         x = self.linear_out(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
-        sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
+        # sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
         A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        sigma_d = torch.ones_like(A)
         b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
 
         return MLBA_Params(mu_d, sigma_d, A, b)
@@ -81,7 +90,7 @@ class MLBA_NN(nn.Module):
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d, 25)
         probs = lba.probs()
         nll = nn.NLLLoss()
-        log_probs = torch.log(probs + 1e-12)  # avoid nans
+        log_probs = torch.log(probs + 1e-6)  # avoid nans
         return nll(log_probs, y.view(-1))
 
     def predict_proba(self, X):
@@ -127,7 +136,7 @@ class MLBA_NN(nn.Module):
             val_loss = float('inf')
             if X_val is not None and y_val is not None:
                 val_loss = self.loss(X_val, y_val).item()
-                if val_loss < best and epoch > self.epochs/5:  # burnin
+                if val_loss < best:
                     best = val_loss
                     best_model = copy.deepcopy(self)
 
@@ -137,7 +146,7 @@ class MLBA_NN(nn.Module):
                     f"val Loss: {val_loss:10.6f}, " +
                     f"Best: {best:10.6f}"
                 )
-        if early_stop:
+        if early_stop and best_model is not None:
             self.load_state_dict(best_model.state_dict())
 
     @profile
@@ -155,32 +164,33 @@ class MLBA_NN(nn.Module):
         return train_loss / len(train_loader)
 
 
-def runRectangles(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
+def runRectangles(n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, early_stop):
     train_data = pd.read_csv('data/E2.csv')
     e1a = pd.read_csv('data/E1a.csv')
     e1b = pd.read_csv('data/E1b.csv')
     e1c = pd.read_csv('data/E1c.csv')
 
     runExperiment(train_data, e1a, e1b, e1c, n_hidden, epochs,
-                  batch, lr, weight_decay, dropout, early_stop)
+                  batch, lr, weight_decay, dropout, test_size, early_stop)
 
 
-def runCriminals(n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
+def runCriminals(n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, early_stop):
     train_data = pd.read_csv('data/E4.csv')
     e1a = pd.read_csv('data/E3a.csv')
     e1b = pd.read_csv('data/E3b.csv')
     e1c = pd.read_csv('data/E3c.csv')
 
     runExperiment(train_data, e1a, e1b, e1c, n_hidden, epochs,
-                  batch, lr,  weight_decay, dropout, early_stop)
+                  batch, lr,  weight_decay, dropout, test_size, early_stop)
 
 
-def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight_decay, dropout, early_stop):
+def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, early_stop):
     features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+    train_data = train_data[train_data.Effect.str.startswith('Sim')]
     X = train_data
     y = (train_data.response.values - 1)
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y.reshape(-1, 1), test_size=0.33)
+        X, y.reshape(-1, 1), test_size=test_size) if test_size > 0 else X, X[:1], y, y[:1]
     scaler = StandardScaler()
 
     model = MLBA_NN(6, 3, n_hidden=n_hidden, n_epochs=epochs, batch=batch, lr=lr,
@@ -229,9 +239,9 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=50, epochs=50, batch=512, lr=0.001,
-                  weight_decay=0.1, dropout=0, early_stop=True)
-    # runCriminals(n_hidden=50, epochs=50, batch=128, lr=0.001,
-    #              weight_decay=0.1, dropout=0, early_stop=True, alpha=0.01)
+    # runRectangles(n_hidden=50, epochs=50, batch=64, lr=0.001,
+    #               weight_decay=0, dropout=0, early_stop=True)
+    runCriminals(n_hidden=50, epochs=10000, batch=512, lr=0.001,
+                 weight_decay=0, dropout=0, test_size=0, early_stop=False)
 
     profiler.print_profile()

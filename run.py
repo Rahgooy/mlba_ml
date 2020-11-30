@@ -44,35 +44,50 @@ models = {
     # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
     # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
     # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.001_50_64_wd_0.1_d_0.2_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0.1, dropout=0.2),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
     'mlba_nn_0.0001_50_64_wd_0.1_d_0_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0.1, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
-    'mlba_nn_0.001_10_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 10, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+    'mlba_nn_0.001_50_64_wd_0.001_d_0_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
-    'mlba_nn_0.0001_10_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 10, epochs, 64, 0.0001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+    'mlba_nn_0.01_50_64_wd_0.001_d_0_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.01, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
-    'mlba_nn_0.001_25_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 25, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+    'mlba_nn_0.1_50_64_wd_0.001_d_0_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.1, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
-    'mlba_nn_0.001_75_64_wd_0_d_0_rect': {
+    'mlba_nn_0.0001_50_64_wd_0_d_0_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 75, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.5) + [True],
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+    },
+    'mlba_nn_0.001_50_64_wd_0_d_0_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+    },
+    'mlba_nn_0.01_50_64_wd_0_d_0_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.01, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+    },
+    'mlba_nn_0.1_50_64_wd_0_d_0_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.1, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+    },
+    'mlba_nn_0.0001_50_64_wd_0.1_d_0_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
     },
 }
 
