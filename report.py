@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from tabulate import tabulate
+import itertools
 
 e1a = pd.read_csv('data/E1a.csv')
 e1b = pd.read_csv('data/E1b.csv')
@@ -39,7 +40,7 @@ def get_stats(model_path, exp):
     return modelMSE, overall
 
 
-def print_results(exp):
+def get_results(exp):
     outDir = Path(f'out/res/{exp}')
     results = []
     exp_counts = None
@@ -50,15 +51,19 @@ def print_results(exp):
                 res = [model.name] + [m[0] for m in modelMSE] + [overall]
                 results.append(res)
             exp_counts = [m[1] for m in modelMSE]
+    return results, exp_counts
 
+
+def print_results():
+    crim_results, crim_counts = get_results('Criminals')
+    rect_results, rect_counts = get_results('Rectangles')
     print("\n")
-    print(exp)
-    print("Counts:", exp_counts)
-    results = sorted(results, key=lambda x: x[-1])
-    h = ['Model', "E1a", "E1b", "E1c", "Overall"] if exp == 'Rectangles' else [
-        'Model', "E3a", "E3b", "E3c", "Overall"]
+    print("Criminal Counts:", crim_counts, "Rectangles Counts:", rect_counts)
+    crim_results = sorted(crim_results, key=lambda x: x[-1])
+    rect_results = sorted(rect_results, key=lambda x: x[-1])
+    h = ['Criminals Model', "E1a", "E1b", "E1c", "Overall",
+         'Rectangles Model', "E3a", "E3b", "E3c", "Overall"]
+    results = [x + y for (x, y) in itertools.zip_longest(crim_results, rect_results, fillvalue=[None] * 5)]
     print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".4f"))
 
-
-print_results('Criminals')
-print_results('Rectangles')
+print_results()

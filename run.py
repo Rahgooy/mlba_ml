@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Normalizer
 from sklearn import tree
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
@@ -19,6 +19,28 @@ from multiprocessing import Pool
 import os
 
 
+class DummyScaler:
+    def transform(self, x):
+        return x
+
+    def fit_transform(self, x):
+        return x
+
+
+class CustomScaler:
+    def __init__(self):
+        self.norm = Normalizer(norm='max')
+        self.st = StandardScaler()
+
+    def transform(self, x):
+        x = self.norm.transform(x)
+        return self.st.transform(x)
+
+    def fit_transform(self, x):
+        x = self.norm.fit_transform(x)
+        return self.st.fit_transform(x)
+
+
 def load_paper_data(path):
     cols = ['Cond', 'Time', 'Resp.O1', 'Resp.O2', 'Resp.O3']
     with open(path) as f:
@@ -28,66 +50,39 @@ def load_paper_data(path):
     return data.rename(columns={'Cond': 'Effect'})
 
 
-def split(X, y, test_size):
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y.reshape(-1, 1), test_size=test_size)
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_val = scaler.transform(X_val)
-    return [scaler, X_train, y_train, X_val, y_val]
+def split(X, y, test_size, scaler):
+    if test_size:
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y.reshape(-1, 1), test_size=test_size)
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+        return [scaler, X_train, y_train, X_val, y_val]
+
+    return [scaler, scaler.fit_transform(X), y]
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-epochs = 200
+epochs = 500
 models = {
-    # 'logistic_regression': lambda: LogisticRegression(multi_class='multinomial', solver='newton-cg'),
-    # 'random_forest': lambda: RandomForestClassifier(n_estimators=100),
-    # 'mlp': lambda: MLP(6, 3, 50, 100, 32),
-    # 'mlp_sk': lambda: MLPClassifier(),
-    'mlba_nn_0.0001_50_64_wd_0.1_d_0_crim': {
+    'mlp_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+        'model': lambda: MLP(6, 3, 50, epochs, 64),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, CustomScaler()),
     },
-    'mlba_nn_0.001_50_64_wd_0.001_d_0_crim': {
+    'mlp_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLP(6, 3, 50, epochs, 32),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, CustomScaler()),
+    },
+    'mlba_nn_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.0005, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     },
-    'mlba_nn_0.01_50_64_wd_0.001_d_0_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.01, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.1_50_64_wd_0.001_d_0_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.1, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.0001_50_64_wd_0_d_0_rect': {
+    'mlba_nn_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.001_50_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.01_50_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.01, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.1_50_64_wd_0_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.1, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
-    },
-    'mlba_nn_0.0001_50_64_wd_0.1_d_0_rect': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.0001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33) + [True],
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     },
 }
 

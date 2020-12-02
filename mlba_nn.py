@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Normalizer
 from mlba import sample_lba
 import pandas as pd
 import numpy as np
@@ -12,6 +12,7 @@ from lba_dist import LBA
 from helpers import jsd, mse, kld
 import os
 from profiling import global_profiler as profiler, profile
+from sklearn.metrics import accuracy_score
 
 
 class MLBA_Params:
@@ -30,6 +31,20 @@ class DummyScaler:
         return x
 
 
+class CustomScaler:
+    def __init__(self):
+        self.norm = Normalizer(norm='max')
+        self.st = StandardScaler()
+
+    def transform(self, x):
+        x = self.norm.transform(x)
+        return self.st.transform(x)
+
+    def fit_transform(self, x):
+        x = self.norm.fit_transform(x)
+        return self.st.fit_transform(x)
+
+
 class MLBA_NN(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
                  weight_decay=0, dropout=0):
@@ -38,14 +53,14 @@ class MLBA_NN(nn.Module):
         self.weight_decay = weight_decay
         self.f1 = nn.Linear(n_features, n_hidden)
         self.f2 = nn.Linear(n_hidden, n_hidden)
+        self.f3 = nn.Linear(n_hidden, n_hidden)
         # mu_d for each option and A, b, sigma_d
         self.linear_out = nn.Linear(n_hidden, n_options + 3)
-        self.softPlus = nn.Softplus()
-        self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(dropout) if dropout else lambda x: x
-        self.batch_norm = nn.BatchNorm1d(n_hidden)
+        self.batch_norm = nn.BatchNorm1d(
+            n_hidden) if batch > 4 else lambda x: x
 
         self.options = n_options
         self.epochs = n_epochs
@@ -74,6 +89,10 @@ class MLBA_NN(nn.Module):
         x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
+        x = self.f3(x)
+        x = self.batch_norm(x)
+        x = self.dropout(x)
+        x = self.tanh(x)
         x = self.linear_out(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
@@ -98,6 +117,13 @@ class MLBA_NN(nn.Module):
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
         return lba.probs().detach().numpy()
+
+    def score(self, X, y):
+        if isinstance(y, torch.Tensor):
+            y = y.detach().numpy()
+        probs = self.predict_proba(X)
+        y_ = np.argmax(probs, 1)
+        return accuracy_score(y.reshape(-1), y_)
 
     def predict_proba_mlba(self, X):
         x = torch.Tensor(X.tolist()).to(self.device)
@@ -186,12 +212,11 @@ def runCriminals(n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, 
 
 def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, early_stop):
     features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-    train_data = train_data[train_data.Effect.str.startswith('Sim')]
     X = train_data
     y = (train_data.response.values - 1)
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y.reshape(-1, 1), test_size=test_size) if test_size > 0 else X, X[:1], y, y[:1]
-    scaler = StandardScaler()
+        X, y.reshape(-1, 1), test_size=test_size) if test_size > 0 else (X, X[:1], y, y[:1])
+    scaler = CustomScaler()
 
     model = MLBA_NN(6, 3, n_hidden=n_hidden, n_epochs=epochs, batch=batch, lr=lr,
                     weight_decay=weight_decay, dropout=dropout)
@@ -206,7 +231,8 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
         if print_:
             print("Actual:", probs)
             print("Predicted directly:", probs1,
-                  "MSE:", mse(probs, probs1))
+                  "MSE:", mse(probs, probs1),
+                  "Count:", X.shape[0])
         # print("Predicted simulated:", probs2,
         #       "MSE:", mse(probs, probs2))
         return mse(probs, probs1)
@@ -214,11 +240,14 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
     def per_effect(X, y, scaler):
         effects = X.groupby('Effect')
         overall = 0
+        counts = 0
         for e, d in effects:
             eff = X.Effect.str.startswith(e)
             overall += evaluate(scaler.transform(
-                X[features].values[eff]), y[eff], False)
-        print("Overall:", overall/len(effects))
+                X[features].values[eff]), y[eff], False) * d.shape[0]
+            counts += d.shape[0]
+        print("Overall:", overall/counts)
+        return overall/counts, counts
 
     print("train")
     evaluate(scaler.transform(X_train[features].values), y_train, True)
@@ -229,19 +258,22 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
     per_effect(X_val, y_val, scaler)
 
     print("\ne_a")
-    per_effect(e_a, e_a.response.values - 1, scaler)
+    mse_a, counts_a = per_effect(e_a, e_a.response.values - 1, scaler)
 
     print("e_b")
-    per_effect(e_b, e_b.response.values - 1, scaler)
+    mse_b, counts_b = per_effect(e_b, e_b.response.values - 1, scaler)
 
     print("e_c")
-    per_effect(e_b, e_b.response.values - 1, scaler)
+    mse_c, counts_c = per_effect(e_c, e_c.response.values - 1, scaler)
+
+    print("Mean:", (mse_a * counts_a + mse_b * counts_b +
+                    mse_c * counts_c) / (counts_a + counts_b + counts_c))
 
 
 if __name__ == "__main__":
-    # runRectangles(n_hidden=50, epochs=50, batch=64, lr=0.001,
-    #               weight_decay=0, dropout=0, early_stop=True)
-    runCriminals(n_hidden=50, epochs=10000, batch=512, lr=0.001,
-                 weight_decay=0, dropout=0, test_size=0, early_stop=False)
+    # runRectangles(n_hidden=50, epochs=70, batch=1024, lr=0.001,
+    #               weight_decay=0.05, dropout=0, test_size=.33, early_stop=True)
+    runCriminals(n_hidden=50, epochs=70, batch=1024, lr=0.0005,
+                 weight_decay=0.1, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()
