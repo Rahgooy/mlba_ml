@@ -17,6 +17,8 @@ import json
 from pathlib import Path
 from multiprocessing import Pool
 import os
+import pickle
+import torch
 
 
 class DummyScaler:
@@ -62,16 +64,16 @@ def split(X, y, test_size, scaler):
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-epochs = 1000
+epochs = 10
 models = {
     'mlp_crim': {
         'data': 'Criminals',
-        'model': lambda: MLP(6, 3, 50, epochs, 32, 0.001),
+        'model': lambda: MLP(6, 3, 50, epochs, 1024, 0.001),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0, CustomScaler()),
     },
     'mlp_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLP(6, 3, 50, epochs, 1024, 0.01),
+        'model': lambda: MLP(6, 3, 50, epochs, 32, 0.001),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     },
     'mlba_nn_crim': {
@@ -170,6 +172,18 @@ def save_results(path, actual, pred, mse, names, paper_pred):
             f.write(f'{names[i]}, {actual[i]}, {pred[i]}, {paper_pred[i]}\n')
 
 
+def save_model(model, scaler, model_path):
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    with model_path.open('bw') as f:
+        pickle.dump((model, scaler), f)
+
+
+def load_model(model_path):
+    with model_path.open('br') as f:
+        (model, scaler) = pickle.load(f)
+    return model, scaler
+
+
 def run_model(m, exp, run):
     print(f'[{os.getpid()}] Run #{run} ...')
     np.random.seed(os.getpid() * 100 + run)
@@ -181,6 +195,9 @@ def run_model(m, exp, run):
     scaler = params[0]
     params = params[1:]
     model.fit(*params)
+    models_path = Path(f'out/temp/models')
+    save_model(model, scaler, models_path / f'{m}_run_{run}.pkl')
+    (temp_m, temp_scaler) = load_model(models_path / f'{m}_run_{run}.pkl')
     actual = {}
     pred = {}
     mse = {}
@@ -215,12 +232,12 @@ def evaluate(m, n=10, jobs=5):
         p_pred = np.array([paper_data[paper_data.Effect == eff][[
                           'Resp.O1', 'Resp.O2', 'Resp.O3']].values.mean(0) for eff in names])
 
-        save_results(dir / f'{m}_{e}', actual, pred, mse, names, p_pred)
+        # save_results(dir / f'{m}_{e}', actual, pred, mse, names, p_pred)
 
 
 def run():
     for m in models:
-        evaluate(m, n=5, jobs=5)
+        evaluate(m, n=1, jobs=1)
 
 
 if __name__ == "__main__":

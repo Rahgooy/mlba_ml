@@ -58,9 +58,9 @@ class MLBA_NN(nn.Module):
         self.linear_out = nn.Linear(n_hidden, n_options + 3)
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
-        self.dropout = nn.Dropout(dropout) if dropout else lambda x: x
+        self.dropout = nn.Dropout(dropout) if dropout else self._no_op
         self.batch_norm = nn.BatchNorm1d(
-            n_hidden) if batch > 4 else lambda x: x
+            n_hidden) if batch > 4 else self._no_op
 
         self.options = n_options
         self.epochs = n_epochs
@@ -77,6 +77,9 @@ class MLBA_NN(nn.Module):
         # else:
         dev = "cpu"
         self.device = torch.device(dev)
+
+    def _no_op(self, x):
+        return x
 
     @profile
     def forward(self, X):
