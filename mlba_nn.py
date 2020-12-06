@@ -13,6 +13,7 @@ from helpers import jsd, mse, kld
 import os
 from profiling import global_profiler as profiler, profile
 from sklearn.metrics import accuracy_score
+from scaler import DummyScaler, CustomScaler
 
 
 class MLBA_Params:
@@ -21,28 +22,6 @@ class MLBA_Params:
         self.sigma_d = sigma_d
         self.A = A
         self.b = b
-
-
-class DummyScaler:
-    def transform(self, x):
-        return x
-
-    def fit_transform(self, x):
-        return x
-
-
-class CustomScaler:
-    def __init__(self):
-        self.norm = Normalizer(norm='max')
-        self.st = StandardScaler()
-
-    def transform(self, x):
-        x = self.norm.transform(x)
-        return self.st.transform(x)
-
-    def fit_transform(self, x):
-        x = self.norm.fit_transform(x)
-        return self.st.fit_transform(x)
 
 
 class MLBA_NN(nn.Module):
@@ -120,6 +99,12 @@ class MLBA_NN(nn.Module):
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
         return lba.probs().detach().numpy()
+
+    def get_d(self, X):
+        x = torch.Tensor(X.tolist()).to(self.device)
+        params = self.forward(x)
+        lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
+        return lba.d
 
     def score(self, X, y):
         if isinstance(y, torch.Tensor):

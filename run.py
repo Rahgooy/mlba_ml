@@ -19,28 +19,7 @@ from multiprocessing import Pool
 import os
 import pickle
 import torch
-
-
-class DummyScaler:
-    def transform(self, x):
-        return x
-
-    def fit_transform(self, x):
-        return x
-
-
-class CustomScaler:
-    def __init__(self):
-        self.norm = Normalizer(norm='max')
-        self.st = StandardScaler()
-
-    def transform(self, x):
-        x = self.norm.transform(x)
-        return self.st.transform(x)
-
-    def fit_transform(self, x):
-        x = self.norm.fit_transform(x)
-        return self.st.fit_transform(x)
+from scaler import CustomScaler, DummyScaler
 
 
 def load_paper_data(path):
@@ -64,7 +43,7 @@ def split(X, y, test_size, scaler):
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-epochs = 1000
+epochs = 200
 models = {
     'mlp_crim': {
         'data': 'Criminals',
@@ -156,7 +135,9 @@ def save_results(path, actual, pred_list, mse_list, names, paper_pred, counts):
         f.write(f'Counts: {counts}')
 
     with path.with_name(path.name + '_preds.pkl').open(mode='wb') as f:
-        pickle.dump((names, actual, pred_list, paper_pred, mse_list, counts), f)
+        pickle.dump((names, actual, pred_list,
+                     paper_pred, mse_list, counts), f)
+
 
 def save_model(model, scaler, model_path):
     model_path.parent.mkdir(parents=True, exist_ok=True)
@@ -226,7 +207,7 @@ def evaluate(m, n=10, jobs=5):
 
 def run():
     for m in models:
-        evaluate(m, n=100, jobs=50)
+        evaluate(m, n=5, jobs=5)
 
 
 if __name__ == "__main__":
