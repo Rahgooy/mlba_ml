@@ -5,7 +5,7 @@ from scaler import CustomScaler, DummyScaler
 import matplotlib.pyplot as plt
 
 
-path = Path(f'out/temp/models/mlba_nn_rect_run_5.pkl')
+path = Path(f'out/temp/models/mlba_nn_rect_run_1.pkl')
 with path.open('rb') as f:
     model, scaler = pickle.load(f)
 
@@ -16,8 +16,8 @@ def predict(m, x):
     return d
 
 
-A = [3, 6]
-B = [3, 4]
+A = [3, 4]
+B = [4, 3]
 
 x = np.arange(1, 6, 0.3)
 y = np.arange(1, 6, 0.3)

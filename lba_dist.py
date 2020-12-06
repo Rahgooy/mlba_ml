@@ -150,7 +150,7 @@ class LBA:
     @profile('LBA.probs')
     def probs(self):
         res = gauss(self.firstTimePdf, self.nS, self.approx_n).t()
-        res.clip(0)  # due to approx error we may ancounter very small negative
+        res.clamp(0)  # due to approx error we may ancounter very small negative
         return res / res.sum(1).view(-1, 1) # Normalize to 1(due to approx error)
 
 
