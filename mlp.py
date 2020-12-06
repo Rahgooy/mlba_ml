@@ -28,10 +28,10 @@ class MLP(torch.nn.Module):
         self.batch = batch
         self.lr = lr
 
-        if torch.cuda.is_available():
-            dev = f"cuda:0"
-        else:
-            dev = "cpu"
+        # if torch.cuda.is_available():
+        #     dev = f"cuda:0"
+        # else:
+        dev = "cpu"
         self.device = torch.device(dev)
 
     def forward(self, X):

@@ -64,7 +64,7 @@ def split(X, y, test_size, scaler):
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-epochs = 10
+epochs = 1000
 models = {
     'mlp_crim': {
         'data': 'Criminals',
@@ -140,21 +140,23 @@ def get_predictions(model, data, scaler):
     actual = np.array(actual)
     pred = np.array(pred)
     MSE = np.array(MSE)
-    return actual, pred, MSE, [g for g, _ in effects]
+    return actual, pred, MSE, [g for g, _ in effects], [d.shape[0] for d in effects_data]
 
 
 markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
 colors = ['r', 'lime', 'b']
 
-def save_results(path, actual_list, pred_list, mse_list, names, paper_pred):
+
+def save_results(path, actual, pred_list, mse_list, names, paper_pred, counts):
     mse = sum(mse_list) / len(mse_list)
     with path.with_name(path.name + '_mse.txt').open(mode='w') as f:
         for i in range(len(names)):
             f.write(f'{names[i]}: {mse[i]}\n')
 
-    with path.with_name(path.name + '_preds.pkl').open(mode='wb') as f:
-        pickle.dump((names, actual_list, pred_list, paper_pred), f)
+        f.write(f'Counts: {counts}')
 
+    with path.with_name(path.name + '_preds.pkl').open(mode='wb') as f:
+        pickle.dump((names, actual, pred_list, paper_pred, mse_list, counts), f)
 
 def save_model(model, scaler, model_path):
     model_path.parent.mkdir(parents=True, exist_ok=True)
@@ -186,15 +188,17 @@ def run_model(m, exp, run):
     pred = {}
     mse = {}
     names = {}
+    counts = {}
     for e in exp['test']:
         data = exp['test'][e]
-        a, p, m, effects = get_predictions(model, data, scaler)
+        a, p, m, effects, c = get_predictions(model, data, scaler)
         actual[e] = a
         mse[e] = m
         pred[e] = p
         names[e] = effects
+        counts[e] = c
 
-    return mse, actual, pred, names
+    return mse, actual, pred, names, counts
 
 
 def evaluate(m, n=10, jobs=5):
@@ -209,20 +213,20 @@ def evaluate(m, n=10, jobs=5):
 
     for e in exp['test']:
         mse_list = [r[0][e] for r in results]
-        actual_list = [r[1][e] for r in results]
+        actual = results[0][1][e]
         pred_list = [r[2][e] for r in results]
         names = results[0][3][e]
+        counts = results[0][4][e]
         paper_data = exp['paper'][e]
         p_pred = np.array([paper_data[paper_data.Effect == eff][[
                           'Resp.O1', 'Resp.O2', 'Resp.O3']].values.mean(0) for eff in names])
-
-        save_results(dir / f'{m}_{e}', actual_list,
-                     pred_list, mse_list, names, p_pred)
+        save_results(dir / f'{m}_{e}', actual,
+                     pred_list, mse_list, names, p_pred, counts)
 
 
 def run():
     for m in models:
-        evaluate(m, n=5, jobs=5)
+        evaluate(m, n=100, jobs=50)
 
 
 if __name__ == "__main__":
