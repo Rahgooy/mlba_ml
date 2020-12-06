@@ -146,30 +146,14 @@ def get_predictions(model, data, scaler):
 markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
 colors = ['r', 'lime', 'b']
 
-
-def save_results(path, actual, pred, mse, names, paper_pred):
-    plt.figure(figsize=[4.8, 4.8])
-    for i in range(3):
-        x, y, paper_y = actual[:, i], pred[:, i], paper_pred[:, i]
-        for j in range(len(x)):
-            plt.scatter(x[j], y[j], marker=markers[0], c=colors[0])
-            plt.scatter(x[j], paper_y[j], marker=markers[0], c=colors[1])
-    plt.xlabel('Actual')
-    plt.ylabel('Prediction')
-    plt.plot([0, 1], [0, 1])
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.savefig(path.with_name(path.name + '.png'))
-    plt.close()
-
+def save_results(path, actual_list, pred_list, mse_list, names, paper_pred):
+    mse = sum(mse_list) / len(mse_list)
     with path.with_name(path.name + '_mse.txt').open(mode='w') as f:
         for i in range(len(names)):
             f.write(f'{names[i]}: {mse[i]}\n')
-        f.write(f'Overall: {mse.mean()}')
 
-    with path.with_name(path.name + '_preds.txt').open(mode='w') as f:
-        for i in range(len(names)):
-            f.write(f'{names[i]}, {actual[i]}, {pred[i]}, {paper_pred[i]}\n')
+    with path.with_name(path.name + '_preds.pkl').open(mode='wb') as f:
+        pickle.dump((names, actual_list, pred_list, paper_pred), f)
 
 
 def save_model(model, scaler, model_path):
@@ -224,20 +208,21 @@ def evaluate(m, n=10, jobs=5):
         results = p.starmap(run_model, args)
 
     for e in exp['test']:
-        mse = sum([r[0][e] for r in results]) / n
-        actual = sum([r[1][e] for r in results]) / n
-        pred = sum([r[2][e] for r in results]) / n
+        mse_list = [r[0][e] for r in results]
+        actual_list = [r[1][e] for r in results]
+        pred_list = [r[2][e] for r in results]
         names = results[0][3][e]
         paper_data = exp['paper'][e]
         p_pred = np.array([paper_data[paper_data.Effect == eff][[
                           'Resp.O1', 'Resp.O2', 'Resp.O3']].values.mean(0) for eff in names])
 
-        # save_results(dir / f'{m}_{e}', actual, pred, mse, names, p_pred)
+        save_results(dir / f'{m}_{e}', actual_list,
+                     pred_list, mse_list, names, p_pred)
 
 
 def run():
     for m in models:
-        evaluate(m, n=1, jobs=1)
+        evaluate(m, n=5, jobs=5)
 
 
 if __name__ == "__main__":
