@@ -10,7 +10,7 @@ import numpy as np
 
 
 class MLP(torch.nn.Module):
-    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch):
+    def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr):
         """A multi layer perceptron implementation for choice prediction
 
         Args:
@@ -26,11 +26,12 @@ class MLP(torch.nn.Module):
         self.options = n_options
         self.epochs = n_epochs
         self.batch = batch
+        self.lr = lr
 
-        if torch.cuda.is_available():
-            dev = f"cuda:0"
-        else:
-            dev = "cpu"
+        # if torch.cuda.is_available():
+        #     dev = f"cuda:0"
+        # else:
+        dev = "cpu"
         self.device = torch.device(dev)
 
     def forward(self, X):
@@ -67,7 +68,7 @@ class MLP(torch.nn.Module):
         dataset = TensorDataset(X_train, y_train)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         best = 10000
         best_model = None
         for epoch in range(self.epochs):
