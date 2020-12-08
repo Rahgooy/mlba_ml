@@ -5,13 +5,14 @@ from pathlib import Path
 from tabulate import tabulate
 import itertools
 import pickle
+from helpers import mse
 
 rect_exp = ['e1a', 'e1b', 'e1c']
 crim_exp = ['e3a', 'e3b', 'e3c']
 
 
 def get_median_idx(a):
-    return np.argsort(a)[len(a) // 2]
+    return np.argsort(a)[0]
 
 
 def get_stats(model_path, exp):
@@ -28,13 +29,16 @@ def get_stats(model_path, exp):
         overallMSE = [sum(m * np.array(counts)) / sum(counts)
                       for m in mse_list]
         md = get_median_idx(overallMSE)
-        pred = pred_list[md]  # np.array(pred_list).mean(0)
+        pred = np.array(pred_list).mean(0)
         eff_results = {}
         for i, effect in enumerate(names):
             eff_results[effect] = {
                 'pred': pred[i],
                 'actual': actual[i],
-                'paper_pred': paper_pred[i]
+                'paper_pred': paper_pred[i],
+                'pred_mse': mse(actual[i], pred[i]),
+                'paper_mse': mse(actual[i], paper_pred[i]),
+                'count': counts[i]
             }
         res[e] = eff_results
 
@@ -49,9 +53,9 @@ colors = ['r', 'lime', 'b']
 
 
 def draw_results(crim, rect):
-    fig, ax = plt.subplots(2, 3)
+    fig, ax = plt.subplots(2, 3, sharey=True, sharex=True, figsize=(3 * 3, 2 * 3))
 
-    def plot(ax, exp, model, print_paper, color, label):
+    def plot(ax, exp, model, print_paper, color, label=None, title=None, mse=None):
         m = model[exp]
         a = np.array([m[e]['actual'] for e in m])
         p1 = np.array([m[e]['pred'] for e in m])
@@ -76,27 +80,65 @@ def draw_results(crim, rect):
             ax.plot([0, 1], [0, 1], linewidth=1, c='black')
             ax.set_xlim([0, 1])
             ax.set_ylim([0, 1])
-            # ax.title(title)
-
+            f = {
+                'size': 11,
+                'weight': 600,
+                'family': 'Arial'
+            }
+            ax.set_title(title, fontdict=f)
         ax.label_outer()
 
-    plot(ax[0, 0], 'e1a', rect[0], True, 2, 'MLP')
+    def draw_mse(ax, exp, model1, model2):
+        m1 = model1[exp]
+        m2 = model2[exp]
+        mse1 = sum([m1[e]['pred_mse'] * m1[e]['count']
+                    for e in m1]) / sum([m1[e]['count'] for e in m1])
+        mse2 = sum([m2[e]['pred_mse'] * m2[e]['count']
+                    for e in m2]) / sum([m2[e]['count'] for e in m2])
+        mse3 = sum([m1[e]['paper_mse'] * m1[e]['count']
+                    for e in m1]) / sum([m1[e]['count'] for e in m1])
+
+        text = f'{mse1:0.4f}\n{mse2:0.4f}\n{mse3:0.4f}'
+        ax.text(0.62, 0.17, f'MSE: {mse1*100:0.2f}%', color=colors[2], fontdict={'size': 8, 'weight': 'bold'})
+        ax.text(0.62, 0.1, f'MSE: {mse3*100:0.2f}%', color=colors[1], fontdict={'size': 8, 'weight': 'bold'})
+        ax.text(0.62, 0.03, f'MSE: {mse2*100:0.2f}%', color=colors[0], fontdict={'size': 8, 'weight': 'bold'})
+
+    box_props = dict(facecolor='wheat', alpha=0.5)
+
+    plot(ax[0, 0], 'e1a', rect[0], True, 2, 'MLP', 'Attraction')
     plot(ax[0, 0], 'e1a', rect[1], False, 0, 'MLBA_NN')
-    ax[0, 0].legend(loc="upper left", fontsize='x-small')
-    plot(ax[0, 1], 'e1b', rect[0], True, 2, None)
-    plot(ax[0, 1], 'e1b', rect[1], False, 0, None)
-    plot(ax[0, 2], 'e1c', rect[0], True, 2, None)
-    plot(ax[0, 2], 'e1c', rect[1], False, 0, None)
+    draw_mse(ax[0, 0], 'e1a', rect[0], rect[1])
+    ax[0, 0].legend(loc="upper left", fontsize='small')
 
-    plot(ax[1, 0], 'e3a', crim[0], True, 2, None)
-    plot(ax[1, 0], 'e3a', crim[1], False, 0, None)
-    plot(ax[1, 1], 'e3b', crim[0], True, 2, None)
-    plot(ax[1, 1], 'e3b', crim[1], False, 0, None)
-    plot(ax[1, 2], 'e3c', crim[0], True, 2, None)
-    plot(ax[1, 2], 'e3c', crim[1], False, 0, None)
+    plot(ax[0, 1], 'e1b', rect[0], True, 2, title='Compromise')
+    plot(ax[0, 1], 'e1b', rect[1], False, 0)
+    draw_mse(ax[0, 1], 'e1b', rect[0], rect[1])
 
-    plt.show()
-    print()
+    plot(ax[0, 2], 'e1c', rect[0], True, 2, title='Similarity')
+    plot(ax[0, 2], 'e1c', rect[1], False, 0)
+    draw_mse(ax[0, 2], 'e1c', rect[0], rect[1])
+
+    plot(ax[1, 0], 'e3a', crim[0], True, 2)
+    plot(ax[1, 0], 'e3a', crim[1], False, 0)
+    draw_mse(ax[1, 0], 'e3a', crim[0], crim[1])
+
+    plot(ax[1, 1], 'e3b', crim[0], True, 2)
+    plot(ax[1, 1], 'e3b', crim[1], False, 0)
+    draw_mse(ax[1, 1], 'e3b', crim[0], crim[1])
+
+    plot(ax[1, 2], 'e3c', crim[0], True, 2)
+    plot(ax[1, 2], 'e3c', crim[1], False, 0)
+    draw_mse(ax[1, 2], 'e3c', crim[0], crim[1])
+
+    f = {
+        'size': 12,
+        'weight': 'bold',
+    }
+    plt.text(1.05, 1.43, 'Perceptual', fontdict=f, rotation=-90, color='maroon')
+    plt.text(1.05, 0.28, 'Criminal', fontdict=f, rotation=-90, color='maroon')
+
+    # plt.show()
+    plt.savefig('out/res/res.pdf')
 
 
 def get_results():

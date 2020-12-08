@@ -43,7 +43,7 @@ def split(X, y, test_size, scaler):
 
 
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-epochs = 200
+epochs = 1000
 models = {
     'mlp_crim': {
         'data': 'Criminals',
