@@ -22,7 +22,7 @@ def mse(dist1, dist2):
     dist2 = np.array(dist2)
     return ((dist1 - dist2) ** 2).mean()
 
-def rotate_options(self, X, y):
+def rotate_options(X, y):
     X1 = X.copy()
     X1[:, 0] = X[:, 2]
     X1[:, 1] = X[:, 3]
