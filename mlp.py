@@ -58,7 +58,7 @@ class MLP(torch.nn.Module):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
     def fit(self, X, y):
-        X, y = rotate_options(X, y)
+        # X, y = rotate_options(X, y)
         X_train, X_val, y_train, y_val = train_test_split(
             X, y.reshape(-1, 1), test_size=0.33)
         X_train = self.__tensor(X_train.tolist(), torch.float)

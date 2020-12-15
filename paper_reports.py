@@ -138,7 +138,7 @@ def draw_results(crim, rect):
     plt.text(1.05, 0.28, 'Criminal', fontdict=f, rotation=-90, color='maroon')
 
     # plt.show()
-    plt.savefig('out/res/res.pdf')
+    plt.savefig('out/res/reports.pdf')
 
 
 def get_results():

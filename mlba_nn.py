@@ -113,12 +113,11 @@ class MLBA_NN(nn.Module):
         y_ = np.argmax(probs, 1)
         return accuracy_score(y.reshape(-1), y_)
 
-    def predict_proba_mlba(self, X):
+    def predict_proba_mlba(self, X, n=10000):
         x = torch.Tensor(X.tolist()).to(self.device)
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
         probs = []
-        n = 10000
         for i in range(X.shape[0]):
             rt, resp = sample_lba(n, params.b[i].item(), params.A[i].item(),
                                   params.mu_d[i].detach().reshape(1, -1),
@@ -132,11 +131,11 @@ class MLBA_NN(nn.Module):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
     def fit(self, X, y, X_val=None, y_val=None, early_stop=False):
-        X, y = rotate_options(X, y)
+        # X, y = rotate_options(X, y)
         X = self.__tensor(X.tolist(), torch.float)
         y = self.__tensor(y.tolist(), torch.long)
         if X_val is not None and y_val is not None:
-            X_val, y_val = rotate_options(X_val, y_val)
+            # X_val, y_val = rotate_options(X_val, y_val)
             X_val = self.__tensor(X_val.tolist(), torch.float)
             y_val = self.__tensor(y_val.tolist(), torch.long)
 
@@ -261,9 +260,9 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    # runRectangles(n_hidden=50, epochs=70, batch=1024, lr=0.001,
-    #               weight_decay=0.05, dropout=0, test_size=.33, early_stop=True)
-    runCriminals(n_hidden=50, epochs=70, batch=1024, lr=0.0005,
-                 weight_decay=0.1, dropout=0, test_size=0.33, early_stop=True)
+    runRectangles(n_hidden=50, epochs=70, batch=64, lr=0.001,
+                  weight_decay=0, dropout=0, test_size=.33, early_stop=True)
+    # runCriminals(n_hidden=50, epochs=70, batch=64, lr=0.001,
+    #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()
