@@ -55,15 +55,15 @@ models = {
     #     'model': lambda: MLP(6, 3, 50, epochs, 32, 0.001),
     #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     # },
-    'mlba_nn_crim': {
-        'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
-    },
-    'mlba_nn_rect': {
+    # 'mlba_nn_crim': {
+    #     'data': 'Criminals',
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0, dropout=0),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+    # },
+    'mlba_nn_rect_': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
 }
 
