@@ -90,8 +90,7 @@ def draw(start, end, x, y, z, A, B, name):
 
     #
     fig = plt.figure(figsize=(5, 4.5))
-    CS = plt.contourf(x, y, z[:, :, 3], cmap=cm.coolwarm,
-                      levels=np.arange(0, 1.01, 0.1))  # pcolormesh
+    CS = plt.contourf(x, y, z[:, :, 3], cmap=cm.coolwarm, levels=np.arange(0, 1.01, 0.1))  # pcolormesh
     plt.plot([start, end], [end, start], linewidth=1, c='black')
     plt.scatter([A[0], B[0]], [A[1], B[1]], c='black')
     plt.text(A[0] + 0.1, A[1], 'A')
@@ -106,78 +105,80 @@ def draw(start, end, x, y, z, A, B, name):
 
 
 if __name__ == "__main__":
-    step = 0.05
+    step = 0.1
     ####################### Paper example #####################
-    A = [4, 6]
-    B = [6, 4]
-    data = pd.read_csv('hb_mlba/mesh_paper_example.csv')
-    x, y, z = get_mesh(
-        A, B, 1, 9, step, lambda x: mlba_pred(data, x))
-    draw(1, 9, x, y, z, A, B, 'paper_example')
+    # A = [4, 6]
+    # B = [6, 4]
+    # data = pd.read_csv('hb_mlba/mesh_paper_example.csv')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 9, step, lambda x: mlba_pred(data, x))
+    # draw(1, 9, x, y, z, A, B, 'paper_example')
 
     ######################### MLBA ###########################
     A = [3, 4]
     B = [4, 3]
-    data = pd.read_csv('hb_mlba/mesh_E2.csv')
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mlba_pred(data, x))
-    draw(1, 6, x, y, z, A, B, 'mlba_E2')
+    # data = pd.read_csv('hb_mlba/mesh_E2.csv')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mlba_pred(data, x))
+    # draw(1, 6, x, y, z, A, B, 'mlba_E2')
 
-    data = pd.read_csv('hb_mlba/mesh_E4.csv')
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mlba_pred(data, x))
-    draw(1, 6, x, y, z, A, B, 'mlba_E4')
+    # data = pd.read_csv('hb_mlba/mesh_E4.csv')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mlba_pred(data, x))
+    # draw(1, 6, x, y, z, A, B, 'mlba_E4')
 
     ######################## MLBA_NN #########################
     rect_models = []
     crim_models = []
     mlp_rect_models = []
     mlp_crim_models = []
-    for i in range(1, 51):
-        path = Path(f'out/temp/models/mlba_nn_rect_run_{i}.pkl')
+    name = '_norm'
+    runs = 5
+    for i in range(1, runs + 1):
+        path = Path(f'out/temp/models/mlba_nn_rect{name}_run_{i}.pkl')
         with path.open('rb') as f:
             model, scaler = pickle.load(f)
             rect_models.append((model, scaler))
         x, y, z = get_mesh(
             A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlba_nn_E2_{i}')
+        draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_{i}')
 
-        path = Path(f'out/temp/models/mlba_nn_crim_run_{i}.pkl')
+        path = Path(f'out/temp/models/mlba_nn_crim{name}_run_{i}.pkl')
         with path.open('rb') as f:
             model, scaler = pickle.load(f)
             crim_models.append((model, scaler))
         x, y, z = get_mesh(
             A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlba_nn_E4_{i}')
+        draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_{i}')
 
-        path = Path(f'out/temp/models/mlp_rect_run_{i}.pkl')
-        with path.open('rb') as f:
-            model, scaler = pickle.load(f)
-            mlp_rect_models.append((model, scaler))
-        x, y, z = get_mesh(
-            A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlp_E2_{i}')
+        # path = Path(f'out/temp/models/mlp_rect_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     mlp_rect_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlp_E2_{i}')
 
-        path = Path(f'out/temp/models/mlp_crim_run_{i}.pkl')
-        with path.open('rb') as f:
-            model, scaler = pickle.load(f)
-            mlp_crim_models.append((model, scaler))
-        x, y, z = get_mesh(
-            A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlp_E4_{i}')
+        # path = Path(f'out/temp/models/mlp_crim_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     mlp_crim_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlp_E4_{i}')
 
     x, y, z = get_mesh(
         A, B, 1, 6, step, lambda x: mean_predict(rect_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn_E2_mean')
+    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_mean')
 
     x, y, z = get_mesh(
         A, B, 1, 6, step, lambda x: mean_predict(crim_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn_E4_mean')
+    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_mean')
 
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(mlp_rect_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlp_nn_E2_mean')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(mlp_rect_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E2_mean')
 
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(mlp_crim_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlp_nn_E4_mean')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(mlp_crim_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E4_mean')

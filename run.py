@@ -57,14 +57,34 @@ models = {
     # },
     # 'mlba_nn_crim': {
     #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0, dropout=0),
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
     #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     # },
-    'mlba_nn_rect_': {
-        'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
+    # 'mlba_nn_rect': {
+    #     'data': 'Rectangles',
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+    # },
+    'mlba_nn_crim_norm': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     },
+    'mlba_nn_rect_norm': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+    },
+    # 'mlba_nn_crim_no_norm': {
+    #     'data': 'Criminals',
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
+    # },
+    # 'mlba_nn_rect_no_norm': {
+    #     'data': 'Rectangles',
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
+    # },
 }
 
 experimentData = {
