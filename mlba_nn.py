@@ -180,7 +180,7 @@ class MLBA_NN(nn.Module):
 
 
 def runRectangles(n_hidden, epochs, batch, lr, weight_decay, dropout, test_size, early_stop):
-    train_data = pd.read_csv('data/E2.csv')[:5000]
+    train_data = pd.read_csv('data/E2.csv')
     e1a = pd.read_csv('data/E1a.csv')
     e1b = pd.read_csv('data/E1b.csv')
     e1c = pd.read_csv('data/E1c.csv')
@@ -260,8 +260,8 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=50, epochs=70, batch=128, lr=0.001,
-                  weight_decay=0, dropout=0, test_size=.33, early_stop=True)
+    runRectangles(n_hidden=50, epochs=70, batch=1024, lr=0.001,
+                  weight_decay=0.1, dropout=0, test_size=.33, early_stop=True)
     # runCriminals(n_hidden=50, epochs=70, batch=64, lr=0.001,
     #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
 
