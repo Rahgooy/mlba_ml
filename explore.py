@@ -48,7 +48,7 @@ def get_mesh(A, B, start, end, step, pred):
     return x, y, z
 
 
-def draw(start, end, x, y, z, A, B, name):
+def draw(start, end, x, y, z, A, B, name, path='out/res/runs'):
     fig, ax = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(13, 4))
     # Draw d values
     for i in range(3):
@@ -66,7 +66,8 @@ def draw(start, end, x, y, z, A, B, name):
     fig.subplots_adjust(right=0.9)
     cbar_ax = fig.add_axes([0.93, 0.15, 0.01, 0.7])
     fig.colorbar(CS, cax=cbar_ax)
-    plt.savefig(f'out/res/{name}_d.pdf')
+    plt.savefig(f'{path}/{name}_d.pdf')
+    plt.close()
 
     fig, ax = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(13, 4))
     # Draw d values
@@ -86,7 +87,8 @@ def draw(start, end, x, y, z, A, B, name):
     fig.subplots_adjust(right=0.9)
     cbar_ax = fig.add_axes([0.93, 0.15, 0.01, 0.7])
     fig.colorbar(CS, cax=cbar_ax)
-    plt.savefig(f'out/res/{name}_dist.pdf')
+    plt.savefig(f'{path}/{name}_dist.pdf')
+    plt.close()
 
     #
     fig = plt.figure(figsize=(5, 4.5))
@@ -101,7 +103,8 @@ def draw(start, end, x, y, z, A, B, name):
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
     fig.colorbar(CS, cax=cbar_ax)
-    plt.savefig(f'out/res/{name}_p.pdf')
+    plt.savefig(f'{path}/{name}_p.pdf')
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -112,7 +115,7 @@ if __name__ == "__main__":
     # data = pd.read_csv('hb_mlba/mesh_paper_example.csv')
     # x, y, z = get_mesh(
     #     A, B, 1, 9, step, lambda x: mlba_pred(data, x))
-    # draw(1, 9, x, y, z, A, B, 'paper_example')
+    # draw(1, 9, x, y, z, A, B, 'paper_example', 'out/res')
 
     ######################### MLBA ###########################
     A = [3, 4]
@@ -120,9 +123,9 @@ if __name__ == "__main__":
     # data = pd.read_csv('hb_mlba/mesh_E2.csv')
     # x, y, z = get_mesh(
     #     A, B, 1, 6, step, lambda x: mlba_pred(data, x))
-    # draw(1, 6, x, y, z, A, B, 'mlba_E2')
+    # draw(1, 6, x, y, z, A, B, 'mlba_E2', 'out/res')
 
-    # data = pd.read_csv('hb_mlba/mesh_E4.csv')
+    # data = pd.read_csv('hb_mlba/mesh_E4.csv', 'out/res')
     # x, y, z = get_mesh(
     #     A, B, 1, 6, step, lambda x: mlba_pred(data, x))
     # draw(1, 6, x, y, z, A, B, 'mlba_E4')
@@ -169,16 +172,16 @@ if __name__ == "__main__":
 
     x, y, z = get_mesh(
         A, B, 1, 6, step, lambda x: mean_predict(rect_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_mean')
+    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_mean', 'out/res')
 
     x, y, z = get_mesh(
         A, B, 1, 6, step, lambda x: mean_predict(crim_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_mean')
+    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_mean', 'out/res')
 
     # x, y, z = get_mesh(
     #     A, B, 1, 6, step, lambda x: mean_predict(mlp_rect_models, x))
-    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E2_mean')
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E2_mean', 'out/res')
 
     # x, y, z = get_mesh(
     #     A, B, 1, 6, step, lambda x: mean_predict(mlp_crim_models, x))
-    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E4_mean')
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn_E4_mean', 'out/res')
