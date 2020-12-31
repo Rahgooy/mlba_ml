@@ -131,57 +131,83 @@ if __name__ == "__main__":
     draw(1, 6, x, y, z, A, B, 'mlba_E4', 'out/res')
 
     ######################## MLBA_NN #########################
-    rect_models = []
-    crim_models = []
+    nn_rect_models = []
+    nn_crim_models = []
+    nn_m_rect_models = []
+    nn_m_crim_models = []
     mlp_rect_models = []
     mlp_crim_models = []
     name = ''
-    runs = 50
+    runs = 5
     for i in range(1, runs + 1):
-        path = Path(f'out/temp/models/mlba_nn_rect{name}_run_{i}.pkl')
+        # path = Path(f'out/temp/models/mlba_nn_rect{name}_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     nn_rect_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_{i}')
+
+        # path = Path(f'out/temp/models/mlba_nn_crim{name}_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     nn_crim_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_{i}')
+
+        path = Path(f'out/temp/models/mlba_nn_m_rect{name}_run_{i}.pkl')
         with path.open('rb') as f:
             model, scaler = pickle.load(f)
-            rect_models.append((model, scaler))
+            nn_m_rect_models.append((model, scaler))
         x, y, z = get_mesh(
             A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_{i}')
+        draw(1, 6, x, y, z, A, B, f'mlba_nn_m{name}_E2_{i}')
 
-        path = Path(f'out/temp/models/mlba_nn_crim{name}_run_{i}.pkl')
+        path = Path(f'out/temp/models/mlba_nn_m_crim{name}_run_{i}.pkl')
         with path.open('rb') as f:
             model, scaler = pickle.load(f)
-            crim_models.append((model, scaler))
+            nn_m_crim_models.append((model, scaler))
         x, y, z = get_mesh(
             A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_{i}')
+        draw(1, 6, x, y, z, A, B, f'mlba_nn_m{name}_E4_{i}')
 
-        path = Path(f'out/temp/models/mlp_rect{name}_run_{i}.pkl')
-        with path.open('rb') as f:
-            model, scaler = pickle.load(f)
-            mlp_rect_models.append((model, scaler))
-        x, y, z = get_mesh(
-            A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlp{name}_E2_{i}')
+        # path = Path(f'out/temp/models/mlp_rect{name}_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     mlp_rect_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlp{name}_E2_{i}')
 
-        path = Path(f'out/temp/models/mlp_crim{name}_run_{i}.pkl')
-        with path.open('rb') as f:
-            model, scaler = pickle.load(f)
-            mlp_crim_models.append((model, scaler))
-        x, y, z = get_mesh(
-            A, B, 1, 6, step, lambda x: predict(model, scaler, x))
-        draw(1, 6, x, y, z, A, B, f'mlp{name}_E4_{i}')
+        # path = Path(f'out/temp/models/mlp_crim{name}_run_{i}.pkl')
+        # with path.open('rb') as f:
+        #     model, scaler = pickle.load(f)
+        #     mlp_crim_models.append((model, scaler))
+        # x, y, z = get_mesh(
+        #     A, B, 1, 6, step, lambda x: predict(model, scaler, x))
+        # draw(1, 6, x, y, z, A, B, f'mlp{name}_E4_{i}')
 
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(rect_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_mean', 'out/res')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(nn_rect_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E2_mean', 'out/res')
 
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(crim_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_mean', 'out/res')
-
-    x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(mlp_rect_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlp_nn{name}_E2_mean', 'out/res')
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(nn_crim_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlba_nn{name}_E4_mean', 'out/res')
 
     x, y, z = get_mesh(
-        A, B, 1, 6, step, lambda x: mean_predict(mlp_crim_models, x))
-    draw(1, 6, x, y, z, A, B, f'mlp_nn{name}_E4_mean', 'out/res')
+        A, B, 1, 6, step, lambda x: mean_predict(nn_m_rect_models, x))
+    draw(1, 6, x, y, z, A, B, f'mlba_nn_m{name}_E2_mean', 'out/res')
+
+    x, y, z = get_mesh(
+        A, B, 1, 6, step, lambda x: mean_predict(nn_m_crim_models, x))
+    draw(1, 6, x, y, z, A, B, f'mlba_nn_m{name}_E4_mean', 'out/res')
+
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(mlp_rect_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn{name}_E2_mean', 'out/res')
+
+    # x, y, z = get_mesh(
+    #     A, B, 1, 6, step, lambda x: mean_predict(mlp_crim_models, x))
+    # draw(1, 6, x, y, z, A, B, f'mlp_nn{name}_E4_mean', 'out/res')

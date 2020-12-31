@@ -13,6 +13,7 @@ from sklearn.metrics import r2_score
 import pickle
 from mlp import MLP
 from mlba_nn import MLBA_NN
+from mlba_nn_m import MLBA_NN_M
 import json
 from pathlib import Path
 from multiprocessing import Pool
@@ -57,34 +58,24 @@ models = {
     # },
     # 'mlba_nn_crim': {
     #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
     #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     # },
     # 'mlba_nn_rect': {
     #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
+    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
     #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
     # },
-    'mlba_nn_crim_norm': {
+    'mlba_nn_m_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 512, 1e-6 * 512, weight_decay=0.001, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
-    'mlba_nn_rect_norm': {
+    'mlba_nn_m_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 1024, 1e-6 * 1024, weight_decay=0.001, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
-    # 'mlba_nn_crim_no_norm': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
-    # },
-    # 'mlba_nn_rect_no_norm': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
-    # },
 }
 
 experimentData = {

@@ -9,7 +9,7 @@ import numpy as np
 import copy
 import time
 from lba_dist import LBA
-from helpers import jsd, mse, kld, rotate_options
+from helpers import jsd, mse, kld
 import os
 from profiling import global_profiler as profiler, profile
 from sklearn.metrics import accuracy_score
@@ -131,11 +131,9 @@ class MLBA_NN(nn.Module):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
     def fit(self, X, y, X_val=None, y_val=None, early_stop=False):
-        # X, y = rotate_options(X, y)
         X = self.__tensor(X.tolist(), torch.float)
         y = self.__tensor(y.tolist(), torch.long)
         if X_val is not None and y_val is not None:
-            # X_val, y_val = rotate_options(X_val, y_val)
             X_val = self.__tensor(X_val.tolist(), torch.float)
             y_val = self.__tensor(y_val.tolist(), torch.long)
 

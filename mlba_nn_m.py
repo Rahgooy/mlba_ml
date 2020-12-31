@@ -28,9 +28,6 @@ class MLBA_NN_M(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
                  weight_decay=0, dropout=0):
         super(MLBA_NN_M, self).__init__()
-        # if torch.cuda.is_available():
-        #     dev = "cpu" #"cuda:0"
-        # else:
         dev = "cpu"
         self.device = torch.device(dev)
         self.lr = lr
@@ -74,15 +71,12 @@ class MLBA_NN_M(nn.Module):
         n = self.options
         u = self.to_subjective(X, self.softplus(self.m[0]).clamp(.1, 50))
         x = self.f1(u)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.f2(x)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.f3(x)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.linear_out(x)
@@ -123,12 +117,11 @@ class MLBA_NN_M(nn.Module):
         y_ = np.argmax(probs, 1)
         return accuracy_score(y.reshape(-1), y_)
 
-    def predict_proba_mlba(self, X):
+    def predict_proba_mlba(self, X, n=10000):
         x = torch.Tensor(X.tolist()).to(self.device)
         params = self.forward(x)
         lba = LBA(params.A, params.b, params.mu_d, params.sigma_d)
         probs = []
-        n = 10000
         for i in range(X.shape[0]):
             rt, resp = sample_lba(n, params.b[i].item(), params.A[i].item(),
                                   params.mu_d[i].detach().reshape(1, -1),
@@ -141,31 +134,10 @@ class MLBA_NN_M(nn.Module):
     def __tensor(self, x, dtype):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
-    def rotate_options(self, X, y):
-        X1 = X.copy()
-        X1[:, 0] = X[:, 2]
-        X1[:, 1] = X[:, 3]
-        X1[:, 2] = X[:, 0]
-        X1[:, 3] = X[:, 1]
-        y1 = y.copy()
-        y1[y == 0] = 1
-        y1[y == 1] = 0
-        X2 = X.copy()
-        X2[:, 0] = X[:, 4]
-        X2[:, 1] = X[:, 5]
-        X2[:, 4] = X[:, 0]
-        X2[:, 5] = X[:, 1]
-        y2 = y.copy()
-        y2[y == 0] = 2
-        y2[y == 2] = 0
-        return np.concatenate((X, X1, X2)), np.concatenate((y, y1, y2))
-
     def fit(self, X, y, X_val=None, y_val=None, early_stop=False):
-        # X, y = self.rotate_options(X, y)
         X = self.__tensor(X.tolist(), torch.float)
         y = self.__tensor(y.tolist(), torch.long)
         if X_val is not None and y_val is not None:
-            # X_val, y_val = self.rotate_options(X_val, y_val)
             X_val = self.__tensor(X_val.tolist(), torch.float)
             y_val = self.__tensor(y_val.tolist(), torch.long)
 
@@ -292,9 +264,10 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=50, epochs=200, batch=1024, lr=0.001,
-                  weight_decay=0, dropout=0, test_size=.33, early_stop=True)
-    # runCriminals(n_hidden=50, epochs=200, batch=1024, lr=0.001,
+    b = 512
+    runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+                  weight_decay=0.0001, dropout=0, test_size=.33, early_stop=True)
+    # runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
     #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()
