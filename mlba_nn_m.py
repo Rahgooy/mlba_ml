@@ -165,6 +165,7 @@ class MLBA_NN_M(nn.Module):
                 )
         if early_stop and best_model is not None:
             self.load_state_dict(best_model.state_dict())
+        return best
 
     @profile
     def __train_step(self, optimizer, train_loader):
@@ -264,9 +265,9 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    b = 512
+    b = 1024
     runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
-                  weight_decay=0.0001, dropout=0, test_size=.33, early_stop=True)
+                  weight_decay=0, dropout=0, test_size=.33, early_stop=True)
     # runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
     #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
 

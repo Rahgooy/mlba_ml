@@ -46,34 +46,34 @@ def split(X, y, test_size, scaler):
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
-    # 'mlp_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 1024, 0.001),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, CustomScaler()),
-    # },
-    # 'mlp_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 32, 0.001),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
-    # 'mlba_nn_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
-    # },
-    # 'mlba_nn_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
-    # },
+    'mlp_crim_': {
+        'data': 'Criminals',
+        'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
+    'mlp_rect_': {
+        'data': 'Rectangles',
+        'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
+    'mlba_nn_crim_no_norm': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
+    },
+    'mlba_nn_rect_no_norm': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
+    },
     'mlba_nn_m_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 512, 1e-6 * 512, weight_decay=0.001, dropout=0),
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
     'mlba_nn_m_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 1024, 1e-6 * 1024, weight_decay=0.001, dropout=0),
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
 }
@@ -175,7 +175,6 @@ def run_model(m, exp, run):
     model.fit(*params)
     models_path = Path(f'out/temp/models')
     save_model(model, scaler, models_path / f'{m}_run_{run}.pkl')
-    (temp_m, temp_scaler) = load_model(models_path / f'{m}_run_{run}.pkl')
     actual = {}
     pred = {}
     mse = {}

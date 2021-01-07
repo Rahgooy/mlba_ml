@@ -64,15 +64,12 @@ class MLBA_NN(nn.Module):
     def forward(self, X):
         n = self.options
         x = self.f1(X)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.f2(x)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.f3(x)
-        x = self.batch_norm(x)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.linear_out(x)
@@ -161,6 +158,7 @@ class MLBA_NN(nn.Module):
                 )
         if early_stop and best_model is not None:
             self.load_state_dict(best_model.state_dict())
+        return best
 
     @profile
     def __train_step(self, optimizer, train_loader):
@@ -258,9 +256,10 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
 
 if __name__ == "__main__":
-    runRectangles(n_hidden=50, epochs=70, batch=1024, lr=0.001,
-                  weight_decay=0.1, dropout=0, test_size=.33, early_stop=True)
-    # runCriminals(n_hidden=50, epochs=70, batch=64, lr=0.001,
-    #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
+    b = 512
+    # runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+    #               weight_decay=1e-6, dropout=0, test_size=.33, early_stop=True)
+    runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+                 weight_decay=1e-6, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()
