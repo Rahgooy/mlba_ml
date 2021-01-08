@@ -64,6 +64,6 @@ def print_results():
     h = ['Criminals Model', "E1a", "E1b", "E1c", "Overall",
          'Rectangles Model', "E3a", "E3b", "E3c", "Overall"]
     results = [x + y for (x, y) in itertools.zip_longest(crim_results, rect_results, fillvalue=[None] * 5)]
-    print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".4f"))
+    print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".5f"))
 
 print_results()

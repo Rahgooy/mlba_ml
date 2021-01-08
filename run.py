@@ -46,22 +46,22 @@ def split(X, y, test_size, scaler):
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
-    'mlp_crim_': {
-        'data': 'Criminals',
-        'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    },
-    'mlp_rect_': {
-        'data': 'Rectangles',
-        'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    },
-    'mlba_nn_crim_no_norm': {
+    # 'mlp_crim': {
+    #     'data': 'Criminals',
+    #     'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    # },
+    # 'mlp_rect': {
+    #     'data': 'Rectangles',
+    #     'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    # },
+    'mlba_nn_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
-    'mlba_nn_rect_no_norm': {
+    'mlba_nn_rect': {
         'data': 'Rectangles',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
@@ -217,7 +217,7 @@ def evaluate(m, n=10, jobs=5):
 
 def run():
     for m in models:
-        evaluate(m, n=5, jobs=5)
+        evaluate(m, n=50, jobs=5)
 
 
 if __name__ == "__main__":

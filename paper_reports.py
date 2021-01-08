@@ -45,11 +45,11 @@ def get_stats(model_path, exp):
     return res
 
 
-crim_models = ['mlp_crim', 'mlba_nn_crim']
-rec_models = ['mlp_rect', 'mlba_nn_rect']
+crim_models = ['mlp_crim', 'mlba_nn_crim', 'mlba_nn_m_crim']
+rec_models = ['mlp_rect', 'mlba_nn_rect', 'mlba_nn_m_rect']
 
 markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
-colors = ['r', 'lime', 'b']
+colors = ['r', 'lime', 'b', 'brown']
 
 
 def draw_results(crim, rect):
@@ -60,7 +60,7 @@ def draw_results(crim, rect):
         a = np.array([m[e]['actual'] for e in m])
         p1 = np.array([m[e]['pred'] for e in m])
         p2 = np.array([m[e]['paper_pred'] for e in m])
-        size = 10
+        size = 15
         for i in range(3):
             if i == 0:
                 ax.scatter(a[:, i], p1[:, i], marker=markers[i],
@@ -107,28 +107,34 @@ def draw_results(crim, rect):
 
     plot(ax[0, 0], 'e1a', rect[0], True, 2, 'MLP', 'Attraction')
     plot(ax[0, 0], 'e1a', rect[1], False, 0, 'MLBA_NN')
-    draw_mse(ax[0, 0], 'e1a', rect[0], rect[1])
+    plot(ax[0, 0], 'e1a', rect[2], False, 3, 'MLBA_NN_m')
+    # draw_mse(ax[0, 0], 'e1a', rect[0], rect[1])
     ax[0, 0].legend(loc="upper left", fontsize='small')
 
     plot(ax[0, 1], 'e1b', rect[0], True, 2, title='Compromise')
     plot(ax[0, 1], 'e1b', rect[1], False, 0)
-    draw_mse(ax[0, 1], 'e1b', rect[0], rect[1])
+    plot(ax[0, 1], 'e1b', rect[2], False, 3)
+    # draw_mse(ax[0, 1], 'e1b', rect[0], rect[1])
 
     plot(ax[0, 2], 'e1c', rect[0], True, 2, title='Similarity')
     plot(ax[0, 2], 'e1c', rect[1], False, 0)
-    draw_mse(ax[0, 2], 'e1c', rect[0], rect[1])
+    plot(ax[0, 2], 'e1c', rect[2], False, 3)
+    # draw_mse(ax[0, 2], 'e1c', rect[0], rect[1])
 
     plot(ax[1, 0], 'e3a', crim[0], True, 2)
     plot(ax[1, 0], 'e3a', crim[1], False, 0)
-    draw_mse(ax[1, 0], 'e3a', crim[0], crim[1])
+    plot(ax[1, 0], 'e3a', crim[2], False, 3)
+    # draw_mse(ax[1, 0], 'e3a', crim[0], crim[1])
 
     plot(ax[1, 1], 'e3b', crim[0], True, 2)
     plot(ax[1, 1], 'e3b', crim[1], False, 0)
-    draw_mse(ax[1, 1], 'e3b', crim[0], crim[1])
+    plot(ax[1, 1], 'e3b', crim[2], False, 3)
+    # draw_mse(ax[1, 1], 'e3b', crim[0], crim[1])
 
     plot(ax[1, 2], 'e3c', crim[0], True, 2)
     plot(ax[1, 2], 'e3c', crim[1], False, 0)
-    draw_mse(ax[1, 2], 'e3c', crim[0], crim[1])
+    plot(ax[1, 2], 'e3c', crim[2], False, 3)
+    # draw_mse(ax[1, 2], 'e3c', crim[0], crim[1])
 
     f = {
         'size': 12,
@@ -144,9 +150,11 @@ def draw_results(crim, rect):
 def get_results():
     outDir = Path(f'out/res/')
     crim = [get_stats(outDir / 'Criminals' / crim_models[0], 'Criminals'),
-            get_stats(outDir / 'Criminals' / crim_models[1], 'Criminals')]
+            get_stats(outDir / 'Criminals' / crim_models[1], 'Criminals'),
+            get_stats(outDir / 'Criminals' / crim_models[2], 'Criminals'),]
     rec = [get_stats(outDir / 'Rectangles' / rec_models[0], 'Rectangles'),
-           get_stats(outDir / 'Rectangles' / rec_models[1], 'Rectangles')]
+           get_stats(outDir / 'Rectangles' / rec_models[1], 'Rectangles'),
+           get_stats(outDir / 'Rectangles' / rec_models[2], 'Rectangles')]
     draw_results(crim, rec)
 
 
