@@ -46,16 +46,16 @@ def split(X, y, test_size, scaler):
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
-    # 'mlp_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
-    # 'mlp_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
+    'mlp_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
+    'mlp_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
     'mlba_nn_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
