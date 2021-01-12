@@ -22,7 +22,6 @@ import pickle
 import torch
 from scaler import CustomScaler, DummyScaler
 
-
 def load_paper_data(path):
     cols = ['Cond', 'Time', 'Resp.O1', 'Resp.O2', 'Resp.O3']
     with open(path) as f:
@@ -32,7 +31,10 @@ def load_paper_data(path):
     return data.rename(columns={'Cond': 'Effect'})
 
 
-def split(X, y, test_size, scaler):
+def split(X, y, test_size, scaler, percent=100):
+    last = X.shape[0] * percent // 100
+    X = X[:last]
+    y = y[:last]
     if test_size:
         X_train, X_val, y_train, y_val = train_test_split(
             X, y.reshape(-1, 1), test_size=test_size)
@@ -49,11 +51,13 @@ models = {
     'mlp_crim': {
         'data': 'Criminals',
         'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+        # Split is done inside the model
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     },
     'mlp_rect': {
         'data': 'Rectangles',
         'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+        # Split is done inside the model
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     },
     'mlba_nn_crim': {
@@ -77,6 +81,14 @@ models = {
         'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
     },
 }
+names = [m for m in models]
+for p in [50, 30]:
+    for m in names:
+        temp = models[m].copy()
+        test_size = 0 if m.startswith('mlp') else 0.33
+        temp['params'] = lambda X, y, ts=test_size, p=p: split(
+            X, y.reshape(-1, 1), ts, DummyScaler(), p) + [True]
+        models[f'{m}_{p}percent'] = temp
 
 experimentData = {
     'Rectangles': {
@@ -138,10 +150,11 @@ colors = ['r', 'lime', 'b']
 
 
 def save_results(path, actual, pred_list, mse_list, names, paper_pred, counts):
-    mse = sum(mse_list) / len(mse_list)
+    mse = np.array(mse_list).mean(0)
+    mse_std = np.array(mse_list).std(0)
     with path.with_name(path.name + '_mse.txt').open(mode='w') as f:
         for i in range(len(names)):
-            f.write(f'{names[i]}: {mse[i]}\n')
+            f.write(f'{names[i]}: {mse[i]} {mse_std[i]}\n')
 
         f.write(f'Counts: {counts}')
 
@@ -164,14 +177,19 @@ def load_model(model_path):
 
 def run_model(m, exp, run):
     print(f'[{os.getpid()}] Run #{run} ...')
-    np.random.seed(os.getpid() * 100 + run)
+    # Fix the seed to split the data the same way. for reproduction
+    np.random.seed(0)
     X_train = exp['train'][features].values
     y_train = (exp['train'].response.values - 1)
-
-    model = models[m]['model']()
     params = models[m]['params'](X_train, y_train)
+
+    # Fix the seed in each run for reproduction
+    np.random.seed(run)
+    torch.random.manual_seed(run)
+    model = models[m]['model']()
     scaler = params[0]
     params = params[1:]
+
     model.fit(*params)
     models_path = Path(f'out/temp/models')
     save_model(model, scaler, models_path / f'{m}_run_{run}.pkl')

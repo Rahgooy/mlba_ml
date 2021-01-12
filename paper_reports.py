@@ -146,7 +146,7 @@ def draw_results(crim, rect):
         'weight': 'bold',
     }
     plt.text(1.05, 1.43, 'Perceptual', fontdict=f, rotation=-90, color='maroon')
-    plt.text(1.05, 0.28, 'Criminal', fontdict=f, rotation=-90, color='maroon')
+    plt.text(1.05, 0.28, 'Inference', fontdict=f, rotation=-90, color='maroon')
 
     # plt.show()
     plt.savefig('out/res/reports.pdf')
