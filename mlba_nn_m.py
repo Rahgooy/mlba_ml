@@ -134,7 +134,7 @@ class MLBA_NN_M(nn.Module):
     def __tensor(self, x, dtype):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
-    def fit(self, X, y, X_val=None, y_val=None, early_stop=False):
+    def fit(self, X, y, X_val=None, y_val=None, early_stop=True):
         X = self.__tensor(X.tolist(), torch.float)
         y = self.__tensor(y.tolist(), torch.long)
         if X_val is not None and y_val is not None:

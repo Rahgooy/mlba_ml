@@ -67,7 +67,7 @@ def draw_results(crim, rect):
                            c=colors[color], label=label, s=size)
                 if print_paper:
                     ax.scatter(a[:, i], p2[:, i], marker=markers[i],
-                               c=colors[1], label='Paper', s=size)
+                               c=colors[1], label='MLBA-HB', s=size)
             else:
                 ax.scatter(a[:, i], p1[:, i], marker=markers[i],
                            c=colors[color], s=size)
@@ -111,8 +111,8 @@ def draw_results(crim, rect):
     s1 = 30
     s2 = 20
     plot(ax[0, 0], 'e1a', rect[0], True, 2, 'MLP', 'Attraction')
-    plot(ax[0, 0], 'e1a', rect[1], False, 0, 'MLBA_NN', size=s1)
-    plot(ax[0, 0], 'e1a', rect[2], False, 3, 'MLBA_NN_m', size=s2)
+    plot(ax[0, 0], 'e1a', rect[1], False, 0, 'MLBA-NN', size=s1)
+    plot(ax[0, 0], 'e1a', rect[2], False, 3, 'MLBA-NN-m', size=s2)
     draw_mse(ax[0, 0], 'e1a', rect[0], rect[1], rect[2])
     ax[0, 0].legend(loc="upper left", fontsize='small')
 

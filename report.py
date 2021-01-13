@@ -53,8 +53,8 @@ def get_results(exp):
         if model.is_dir():
             modelMSE, overall, overall_std = get_stats(model, exp)
             if overall:
-                res = [model.name] + [f'{m[0] * 100:0.3f}({m[2]*100:0.3f})' for m in modelMSE] # 
-                res += [f'{overall*100:0.3f}({overall_std * 100:0.3f})'] # 
+                res = [model.name] + [f'{m[0] * 100:0.3f}' for m in modelMSE] # ({m[2]*100:0.3f})
+                res += [f'{overall*100:0.3f}'] # ({overall_std * 100:0.3f})
                 results.append(res)
             exp_counts = [m[1] for m in modelMSE]
     return results, exp_counts
