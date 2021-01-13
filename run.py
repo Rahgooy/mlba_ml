@@ -48,28 +48,28 @@ def split(X, y, test_size, scaler, percent=100):
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
-    # 'mlp_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
-    #     # Split is done inside the model
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
-    # 'mlp_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
-    #     # Split is done inside the model
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
-    # 'mlba_nn_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
-    # },
-    # 'mlba_nn_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
-    # },
+    'mlp_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+        # Split is done inside the model
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
+    'mlp_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+        # Split is done inside the model
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
+    },
+    'mlba_nn_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
+    'mlba_nn_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
     'mlba_nn_m_crim': {
         'data': 'Criminals',
         'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
