@@ -48,7 +48,7 @@ def get_stats(model_path, exp):
 crim_models = ['mlp_crim', 'mlba_nn_crim', 'mlba_nn_m_crim']
 rec_models = ['mlp_rect', 'mlba_nn_rect', 'mlba_nn_m_rect']
 
-markers = ['o', '^', 'd', 's', '.', '*', 'x', 'p', 'h', 'v']
+markers = ['o', '^', 'd', 's', '.', 'p', 'h', 'v', '*', 'x']
 colors = ['r', 'lime', 'b', 'orange']
 
 
@@ -61,19 +61,20 @@ def draw_results(crim, rect):
         p1 = np.array([m[e]['pred'] for e in m])
         p2 = np.array([m[e]['paper_pred'] for e in m])
         # size = 15
-        for i in range(3):
-            if i == 0:
-                ax.scatter(a[:, i], p1[:, i], marker=markers[i],
-                           c=colors[color], label=label, s=size)
-                if print_paper:
-                    ax.scatter(a[:, i], p2[:, i], marker=markers[i],
-                               c=colors[1], label='MLBA-HB', s=size)
-            else:
-                ax.scatter(a[:, i], p1[:, i], marker=markers[i],
-                           c=colors[color], s=size)
-                if print_paper:
-                    ax.scatter(a[:, i], p2[:, i], marker=markers[i],
-                               c=colors[1], s=size)
+        for j in range(len(a)):
+            for i in range(3):
+                if i == 0 and j == 0:
+                    ax.scatter(a[j, i], p1[j, i], marker=markers[j],
+                            c=colors[color], label=label, s=size)
+                    if print_paper:
+                        ax.scatter(a[j, i], p2[j, i], marker=markers[j],
+                                c=colors[1], label='MLBA-HB', s=size)
+                else:
+                    ax.scatter(a[j, i], p1[j, i], marker=markers[j],
+                            c=colors[color], s=size)
+                    if print_paper:
+                        ax.scatter(a[j, i], p2[j, i], marker=markers[j],
+                                c=colors[1], s=size)
 
         if print_paper:
             ax.set(xlabel='Actual', ylabel='Prediction')
