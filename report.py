@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 from tabulate import tabulate
 import itertools
+import numpy as np
 
 e1a = pd.read_csv('data/E1a.csv')
 e1b = pd.read_csv('data/E1b.csv')
@@ -41,7 +42,7 @@ def get_stats(model_path, exp):
     overall = sum([x[0] * x[1] for x in modelMSE]) / sum([x[1]
                                                           for x in modelMSE]) if len(modelMSE) else 0.0
     overall_std = sum([x[2] * x[1] for x in modelMSE]) / sum([x[1]
-                                                          for x in modelMSE]) if len(modelMSE) else 0.0
+                                                              for x in modelMSE]) if len(modelMSE) else 0.0
     return modelMSE, overall, overall_std
 
 
@@ -53,8 +54,12 @@ def get_results(exp):
         if model.is_dir():
             modelMSE, overall, overall_std = get_stats(model, exp)
             if overall:
-                res = [model.name] + [f'{m[0] * 100:0.3f}' for m in modelMSE] # ({m[2]*100:0.3f})
-                res += [f'{overall*100:0.3f}'] # ({overall_std * 100:0.3f})
+                # 95 CI: 1.96 * s / sqrt(n)
+                # ({m[2]*100:0.3f})
+                res = [
+                    model.name] + [f'{m[0] * 100:0.2f}±{(1.96 * m[2] / np.sqrt(50)) * 100:0.2f}' for m in modelMSE]
+                res += [
+                    f'{overall*100:0.2f}±{(1.96 * overall_std / np.sqrt(50)) * 100:0.2f}']
                 results.append(res)
             exp_counts = [m[1] for m in modelMSE]
     return results, exp_counts
@@ -65,11 +70,13 @@ def print_results():
     rect_results, rect_counts = get_results('Rectangles')
     print("\n")
     print("Criminal Counts:", crim_counts, "Rectangles Counts:", rect_counts)
-    crim_results = sorted(crim_results, key=lambda x: x[-1])
-    rect_results = sorted(rect_results, key=lambda x: x[-1])
+    crim_results = sorted(crim_results, key=lambda x: x[0])
+    rect_results = sorted(rect_results, key=lambda x: x[0])
     h = ['Criminals Model', "E3a", "E3b", "E3c", "Overall",
          'Rectangles Model', "E1a", "E1b", "E1c", "Overall"]
-    results = [x + y for (x, y) in itertools.zip_longest(crim_results, rect_results, fillvalue=[None] * 5)]
+    results = [x + y for (x, y) in itertools.zip_longest(crim_results,
+                                                         rect_results, fillvalue=[None] * 5)]
     print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".3f"))
+
 
 print_results()
