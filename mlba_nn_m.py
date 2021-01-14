@@ -24,18 +24,23 @@ class MLBA_Params:
         self.b = b
 
 
-class MLBA_NN(nn.Module):
+class MLBA_NN_M(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
                  weight_decay=0, dropout=0):
-        super(MLBA_NN, self).__init__()
+        super(MLBA_NN_M, self).__init__()
+        dev = "cpu"
+        self.device = torch.device(dev)
         self.lr = lr
         self.weight_decay = weight_decay
         self.f1 = nn.Linear(n_features, n_hidden)
         self.f2 = nn.Linear(n_hidden, n_hidden)
         self.f3 = nn.Linear(n_hidden, n_hidden)
+        self.m = self.__tensor([1.], torch.float)
+        self.m.requires_grad = True
         # mu_d for each option and A, b, sigma_d
         self.linear_out = nn.Linear(n_hidden, n_options + 3)
         self.sigmoid = nn.Sigmoid()
+        self.softplus = nn.Softplus()
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(dropout) if dropout else self._no_op
         self.batch_norm = nn.BatchNorm1d(
@@ -51,19 +56,21 @@ class MLBA_NN(nn.Module):
         else:
             self.optim = torch.optim.Adam
 
-        # if torch.cuda.is_available():
-        #     dev = "cpu" #"cuda:0"
-        # else:
-        dev = "cpu"
-        self.device = torch.device(dev)
-
     def _no_op(self, x):
         return x
+
+    def to_subjective(self, x, m):
+        x = x.reshape(x.shape[0], 3, 2)
+        a = b = x.sum(2)
+        u1 = b / ((x[:, :, 1] / x[:, :, 0])**m + (b/a)**m)**(1/m)
+        u2 = b * (1 - (u1/a)**m)**(1/m)
+        return torch.stack([u1, u2], 2).view(x.shape[0], 6)
 
     @profile
     def forward(self, X):
         n = self.options
-        x = self.f1(X)
+        u = self.to_subjective(X, self.softplus(self.m[0]).clamp(.1, 50))
+        x = self.f1(u)
         x = self.dropout(x)
         x = self.tanh(x)
         x = self.f2(x)
@@ -137,7 +144,7 @@ class MLBA_NN(nn.Module):
         dataset = TensorDataset(X, y)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = self.optim(self.parameters(), lr=self.lr,
+        optimizer = self.optim(list(self.parameters()) + [self.m], lr=self.lr,
                                weight_decay=self.weight_decay)
         best = float('inf')
         best_model = None
@@ -201,10 +208,10 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
     y = (train_data.response.values - 1)
     X_train, X_val, y_train, y_val = train_test_split(
         X, y.reshape(-1, 1), test_size=test_size) if test_size > 0 else (X, X[:1], y, y[:1])
-    scaler = CustomScaler()
+    scaler = DummyScaler()
 
-    model = MLBA_NN(6, 3, n_hidden=n_hidden, n_epochs=epochs, batch=batch, lr=lr,
-                    weight_decay=weight_decay, dropout=dropout)
+    model = MLBA_NN_M(6, 3, n_hidden=n_hidden, n_epochs=epochs, batch=batch, lr=lr,
+                      weight_decay=weight_decay, dropout=dropout)
     model.fit(scaler.fit_transform(X_train[features].values), y_train,
               scaler.transform(X_val[features].values), y_val, early_stop)
 
@@ -254,12 +261,14 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
     print("Mean:", (mse_a * counts_a + mse_b * counts_b +
                     mse_c * counts_c) / (counts_a + counts_b + counts_c))
 
+    print(model.m)
+
 
 if __name__ == "__main__":
-    b = 512
-    # runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
-    #               weight_decay=1e-6, dropout=0, test_size=.33, early_stop=True)
-    runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
-                 weight_decay=1e-6, dropout=0, test_size=0.33, early_stop=True)
+    b = 1024
+    runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+                  weight_decay=0, dropout=0, test_size=.33, early_stop=True)
+    # runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+    #              weight_decay=0, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()

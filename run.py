@@ -13,6 +13,7 @@ from sklearn.metrics import r2_score
 import pickle
 from mlp import MLP
 from mlba_nn import MLBA_NN
+from mlba_nn_m import MLBA_NN_M
 import json
 from pathlib import Path
 from multiprocessing import Pool
@@ -20,7 +21,6 @@ import os
 import pickle
 import torch
 from scaler import CustomScaler, DummyScaler
-
 
 def load_paper_data(path):
     cols = ['Cond', 'Time', 'Resp.O1', 'Resp.O2', 'Resp.O3']
@@ -31,7 +31,10 @@ def load_paper_data(path):
     return data.rename(columns={'Cond': 'Effect'})
 
 
-def split(X, y, test_size, scaler):
+def split(X, y, test_size, scaler, percent=100):
+    last = X.shape[0] * percent // 100
+    X = X[:last]
+    y = y[:last]
     if test_size:
         X_train, X_val, y_train, y_val = train_test_split(
             X, y.reshape(-1, 1), test_size=test_size)
@@ -45,47 +48,47 @@ def split(X, y, test_size, scaler):
 features = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 epochs = 200
 models = {
-    # 'mlp_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 1024, 0.001),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, CustomScaler()),
-    # },
-    # 'mlp_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLP(6, 3, 50, epochs, 32, 0.001),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
-    # },
-    # 'mlba_nn_crim': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
-    # },
-    # 'mlba_nn_rect': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
-    # },
-    'mlba_nn_crim_norm': {
+    'mlp_crim': {
         'data': 'Criminals',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+        'model': lambda: MLP(6, 3, 50, epochs, 512, 1e-5 * 512),
+        # Split is done inside the model
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     },
-    'mlba_nn_rect_norm': {
+    'mlp_rect': {
         'data': 'Rectangles',
-        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 0.001, weight_decay=0.1, dropout=0),
-        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, CustomScaler()) + [True],
+        'model': lambda: MLP(6, 3, 50, epochs, 1024, 1e-5 * 1024),
+        # Split is done inside the model
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0, DummyScaler()),
     },
-    # 'mlba_nn_crim_no_norm': {
-    #     'data': 'Criminals',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 64, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
-    # },
-    # 'mlba_nn_rect_no_norm': {
-    #     'data': 'Rectangles',
-    #     'model': lambda: MLBA_NN(6, 3, 50, epochs, 128, 0.001, weight_decay=0, dropout=0),
-    #     'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()) + [True],
-    # },
+    'mlba_nn_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
+    'mlba_nn_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
+    'mlba_nn_m_crim': {
+        'data': 'Criminals',
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 512, 1e-5 * 512, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
+    'mlba_nn_m_rect': {
+        'data': 'Rectangles',
+        'model': lambda: MLBA_NN_M(6, 3, 50, epochs, 1024, 1e-5 * 1024, weight_decay=1e-6, dropout=0),
+        'params': lambda X, y: split(X, y.reshape(-1, 1), 0.33, DummyScaler()),
+    },
 }
+names = [m for m in models]
+for p in [50, 30]:
+    for m in names:
+        temp = models[m].copy()
+        test_size = 0 if m.startswith('mlp') else 0.33
+        temp['params'] = lambda X, y, ts=test_size, p=p: split(
+            X, y.reshape(-1, 1), ts, DummyScaler(), p)
+        models[f'{m}_{p}percent'] = temp
 
 experimentData = {
     'Rectangles': {
@@ -147,10 +150,11 @@ colors = ['r', 'lime', 'b']
 
 
 def save_results(path, actual, pred_list, mse_list, names, paper_pred, counts):
-    mse = sum(mse_list) / len(mse_list)
+    mse = np.array(mse_list).mean(0)
+    mse_std = np.array(mse_list).std(0)
     with path.with_name(path.name + '_mse.txt').open(mode='w') as f:
         for i in range(len(names)):
-            f.write(f'{names[i]}: {mse[i]}\n')
+            f.write(f'{names[i]}: {mse[i]} {mse_std[i]}\n')
 
         f.write(f'Counts: {counts}')
 
@@ -173,18 +177,22 @@ def load_model(model_path):
 
 def run_model(m, exp, run):
     print(f'[{os.getpid()}] Run #{run} ...')
-    np.random.seed(os.getpid() * 100 + run)
+    # Fix the seed to split the data the same way. for reproduction
+    np.random.seed(0)
     X_train = exp['train'][features].values
     y_train = (exp['train'].response.values - 1)
-
-    model = models[m]['model']()
     params = models[m]['params'](X_train, y_train)
+
+    # Fix the seed in each run for reproduction
+    np.random.seed(run)
+    torch.random.manual_seed(run)
+    model = models[m]['model']()
     scaler = params[0]
     params = params[1:]
+
     model.fit(*params)
     models_path = Path(f'out/temp/models')
     save_model(model, scaler, models_path / f'{m}_run_{run}.pkl')
-    (temp_m, temp_scaler) = load_model(models_path / f'{m}_run_{run}.pkl')
     actual = {}
     pred = {}
     mse = {}
@@ -227,7 +235,7 @@ def evaluate(m, n=10, jobs=5):
 
 def run():
     for m in models:
-        evaluate(m, n=5, jobs=5)
+        evaluate(m, n=50, jobs=5)
 
 
 if __name__ == "__main__":

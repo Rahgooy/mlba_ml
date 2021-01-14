@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from helpers import rotate_options
 
+
 class MLP(torch.nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr):
         """A multi layer perceptron implementation for choice prediction
@@ -21,7 +22,8 @@ class MLP(torch.nn.Module):
         super(MLP, self).__init__()
         self.f1 = nn.Linear(n_features, n_hidden)
         self.f2 = nn.Linear(n_hidden, n_hidden)
-        self.f3 = nn.Linear(n_hidden, n_options)
+        self.f3 = nn.Linear(n_hidden, n_hidden)
+        self.linear_out = nn.Linear(n_hidden, n_options)
         self.softplus = nn.Softplus()
         self.options = n_options
         self.epochs = n_epochs
@@ -36,10 +38,12 @@ class MLP(torch.nn.Module):
 
     def forward(self, X):
         x = self.f1(X)
-        x = torch.relu(x)
+        x = torch.tanh(x)
         x = self.f2(x)
-        x = torch.relu(x)
+        x = torch.tanh(x)
         x = self.f3(x)
+        x = torch.tanh(x)
+        x = self.linear_out(x)
         probs = torch.softmax(x, 1)
         return probs
 
@@ -58,7 +62,6 @@ class MLP(torch.nn.Module):
         return torch.tensor(x, dtype=dtype).to(self.device)
 
     def fit(self, X, y):
-        # X, y = rotate_options(X, y)
         X_train, X_val, y_train, y_val = train_test_split(
             X, y.reshape(-1, 1), test_size=0.33)
         X_train = self.__tensor(X_train.tolist(), torch.float)
@@ -70,7 +73,7 @@ class MLP(torch.nn.Module):
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        best = 10000
+        best = float('inf')
         best_model = None
         for epoch in range(self.epochs):
             train_loss = self.__train_step(optimizer, train_loader)
@@ -88,6 +91,7 @@ class MLP(torch.nn.Module):
         best_model.train(False)
         self.train(False)
         self.load_state_dict(best_model.state_dict())
+        return best
 
     def __train_step(self, optimizer, train_loader):
         train_loss = 0

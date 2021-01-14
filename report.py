@@ -30,14 +30,19 @@ def get_stats(model_path, exp):
         total = sum(counts[k] for k in counts)
         effects = f.read_text().split('\n')
         mse = 0
+        std = 0
         for effect in effects[:-1]:
             key, val = effect.split(':')
-            m = float(val)
-            mse += m * counts[key]
-        modelMSE.append((mse/total, total))
+            parts = val.strip().split(' ')
+            m, s = (parts[0], parts[1]) if len(parts) > 1 else (parts[0], '0')
+            mse += float(m) * counts[key]
+            std += float(s) * counts[key]
+        modelMSE.append((mse/total, total, std/total))
     overall = sum([x[0] * x[1] for x in modelMSE]) / sum([x[1]
                                                           for x in modelMSE]) if len(modelMSE) else 0.0
-    return modelMSE, overall
+    overall_std = sum([x[2] * x[1] for x in modelMSE]) / sum([x[1]
+                                                          for x in modelMSE]) if len(modelMSE) else 0.0
+    return modelMSE, overall, overall_std
 
 
 def get_results(exp):
@@ -46,9 +51,10 @@ def get_results(exp):
     exp_counts = None
     for model in outDir.iterdir():
         if model.is_dir():
-            modelMSE, overall = get_stats(model, exp)
+            modelMSE, overall, overall_std = get_stats(model, exp)
             if overall:
-                res = [model.name] + [m[0] for m in modelMSE] + [overall]
+                res = [model.name] + [f'{m[0] * 100:0.3f}' for m in modelMSE] # ({m[2]*100:0.3f})
+                res += [f'{overall*100:0.3f}'] # ({overall_std * 100:0.3f})
                 results.append(res)
             exp_counts = [m[1] for m in modelMSE]
     return results, exp_counts
@@ -61,9 +67,9 @@ def print_results():
     print("Criminal Counts:", crim_counts, "Rectangles Counts:", rect_counts)
     crim_results = sorted(crim_results, key=lambda x: x[-1])
     rect_results = sorted(rect_results, key=lambda x: x[-1])
-    h = ['Criminals Model', "E1a", "E1b", "E1c", "Overall",
-         'Rectangles Model', "E3a", "E3b", "E3c", "Overall"]
+    h = ['Criminals Model', "E3a", "E3b", "E3c", "Overall",
+         'Rectangles Model', "E1a", "E1b", "E1c", "Overall"]
     results = [x + y for (x, y) in itertools.zip_longest(crim_results, rect_results, fillvalue=[None] * 5)]
-    print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".4f"))
+    print(tabulate(results, headers=h, tablefmt='fancy_grid', floatfmt=".3f"))
 
 print_results()
