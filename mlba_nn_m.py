@@ -89,10 +89,6 @@ class MLBA_NN_M(nn.Module):
         x = self.linear_out(x)
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
-        # sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
-        # A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
-        # sigma_d = torch.ones_like(A)
-        # b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
         A = torch.ones((mu_d.shape[0], 1)) * self.A
         sigma_d = torch.ones_like(A)
         b = torch.ones((mu_d.shape[0], 1)) * self.b_ + A
