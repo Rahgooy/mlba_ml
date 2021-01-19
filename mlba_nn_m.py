@@ -37,8 +37,15 @@ class MLBA_NN_M(nn.Module):
         self.f3 = nn.Linear(n_hidden, n_hidden)
         self.m = self.__tensor([1.], torch.float)
         self.m.requires_grad = True
+        self.A = self.__tensor([1.], torch.float)
+        self.A.requires_grad = True
+
+        self.b_ = self.__tensor([1.], torch.float)
+        self.b_.requires_grad = True
+
+
         # mu_d for each option and A, b, sigma_d
-        self.linear_out = nn.Linear(n_hidden, n_options + 3)
+        self.linear_out = nn.Linear(n_hidden, n_options)
         self.sigmoid = nn.Sigmoid()
         self.softplus = nn.Softplus()
         self.tanh = nn.Tanh()
@@ -83,9 +90,12 @@ class MLBA_NN_M(nn.Module):
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
         # sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
-        A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        # A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        # sigma_d = torch.ones_like(A)
+        # b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
+        A = torch.ones((mu_d.shape[0], 1)) * self.A
         sigma_d = torch.ones_like(A)
-        b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
+        b = torch.ones((mu_d.shape[0], 1)) * self.b_ + A
 
         return MLBA_Params(mu_d, sigma_d, A, b)
 
@@ -144,7 +154,7 @@ class MLBA_NN_M(nn.Module):
         dataset = TensorDataset(X, y)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = self.optim(list(self.parameters()) + [self.m], lr=self.lr,
+        optimizer = self.optim(list(self.parameters()) + [self.m, self.A, self.b_], lr=self.lr,
                                weight_decay=self.weight_decay)
         best = float('inf')
         best_model = None

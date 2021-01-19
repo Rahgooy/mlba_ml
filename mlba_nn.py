@@ -28,18 +28,26 @@ class MLBA_NN(nn.Module):
     def __init__(self, n_features, n_options, n_hidden, n_epochs, batch, lr=0.001, optim='Adam',
                  weight_decay=0, dropout=0):
         super(MLBA_NN, self).__init__()
+        dev = "cpu"
+        self.device = torch.device(dev)
         self.lr = lr
         self.weight_decay = weight_decay
         self.f1 = nn.Linear(n_features, n_hidden)
         self.f2 = nn.Linear(n_hidden, n_hidden)
         self.f3 = nn.Linear(n_hidden, n_hidden)
         # mu_d for each option and A, b, sigma_d
-        self.linear_out = nn.Linear(n_hidden, n_options + 3)
+        self.linear_out = nn.Linear(n_hidden, n_options)
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
         self.dropout = nn.Dropout(dropout) if dropout else self._no_op
         self.batch_norm = nn.BatchNorm1d(
             n_hidden) if batch > 4 else self._no_op
+
+        self.A = self.__tensor([1.], torch.float)
+        self.A.requires_grad = True
+
+        self.b_ = self.__tensor([1.], torch.float)
+        self.b_.requires_grad = True
 
         self.options = n_options
         self.epochs = n_epochs
@@ -50,12 +58,6 @@ class MLBA_NN(nn.Module):
             self.optim = torch.optim.RMSprop
         else:
             self.optim = torch.optim.Adam
-
-        # if torch.cuda.is_available():
-        #     dev = "cpu" #"cuda:0"
-        # else:
-        dev = "cpu"
-        self.device = torch.device(dev)
 
     def _no_op(self, x):
         return x
@@ -76,9 +78,11 @@ class MLBA_NN(nn.Module):
 
         mu_d = (self.sigmoid(x[:, :n]) * 10 + 1).view(-1, n)
         # sigma_d = (self.sigmoid(x[:, n]) * 5 + 0.1).view(-1, 1)
-        A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        # A = (self.sigmoid(x[:, n+1]) * 10 + 0.1).view(-1, 1)
+        A = torch.ones((mu_d.shape[0], 1)) * self.A
         sigma_d = torch.ones_like(A)
-        b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
+        # b = (self.sigmoid(x[:, n+2]) * 10 + 0.1).view(-1, 1) + A
+        b = torch.ones((mu_d.shape[0], 1)) * self.b_ + A
 
         return MLBA_Params(mu_d, sigma_d, A, b)
 
@@ -137,7 +141,7 @@ class MLBA_NN(nn.Module):
         dataset = TensorDataset(X, y)
         train_loader = DataLoader(dataset, batch_size=self.batch)
 
-        optimizer = self.optim(self.parameters(), lr=self.lr,
+        optimizer = self.optim(list(self.parameters()) + [self.A, self.b_], lr=self.lr,
                                weight_decay=self.weight_decay)
         best = float('inf')
         best_model = None
@@ -253,13 +257,15 @@ def runExperiment(train_data, e_a, e_b, e_c, n_hidden, epochs, batch, lr, weight
 
     print("Mean:", (mse_a * counts_a + mse_b * counts_b +
                     mse_c * counts_c) / (counts_a + counts_b + counts_c))
+    
+    print(model.A, model.b_ + model.A)
 
 
 if __name__ == "__main__":
-    b = 512
-    # runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
-    #               weight_decay=1e-6, dropout=0, test_size=.33, early_stop=True)
-    runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
-                 weight_decay=1e-6, dropout=0, test_size=0.33, early_stop=True)
+    b = 1024
+    runRectangles(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+                  weight_decay=1e-6, dropout=0, test_size=.33, early_stop=True)
+    # runCriminals(n_hidden=50, epochs=70, batch=b, lr=1e-6 * b,
+    #              weight_decay=1e-6, dropout=0, test_size=0.33, early_stop=True)
 
     profiler.print_profile()

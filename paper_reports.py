@@ -26,17 +26,15 @@ def get_stats(model_path, exp):
         with f.open('rb') as file:
             (names, actual, pred_list, paper_pred,
              mse_list, counts) = pickle.load(file)
-        overallMSE = [sum(m * np.array(counts)) / sum(counts)
-                      for m in mse_list]
-        md = get_median_idx(overallMSE)
         pred = np.array(pred_list).mean(0)
         eff_results = {}
+        mean_mse = np.array(mse_list).mean(0)
         for i, effect in enumerate(names):
             eff_results[effect] = {
                 'pred': pred[i],
                 'actual': actual[i],
                 'paper_pred': paper_pred[i],
-                'pred_mse': mse(actual[i], pred[i]),
+                'pred_mse': mean_mse[i],
                 'paper_mse': mse(actual[i], paper_pred[i]),
                 'count': counts[i]
             }
@@ -114,8 +112,8 @@ def draw_results(crim, rect):
         ax.text(0.47, 0.03, f'MSE: {mse3*100:0.2f}%',
                 color=colors[3], fontdict={'size': 11, 'weight': 'bold'})
 
-    s1 = 30
-    s2 = 20
+    s1 = 40
+    s2 = 40
     plot(ax[0, 0], 'e1a', rect[0], True, 2, 'MLP', 'Attraction')
     plot(ax[0, 0], 'e1a', rect[1], False, 0, 'MLBA-NN', size=s1)
     plot(ax[0, 0], 'e1a', rect[2], False, 3, 'MLBA-NN-m', size=s2)
