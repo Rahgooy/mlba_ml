@@ -137,11 +137,12 @@ def draw_metric(exps, model1, model2, model3, metric, ylabel, name):
         data[3, i] = sum([m1[e][f'paper_{metric}'] * m1[e]['count']
                           for e in m1]) / sum([m1[e]['count'] for e in m1])
 
-        err[0, i] = sum([m1[e][f'pred_se_{metric}'] * m1[e]['count']
+        # 95% CI: 1.96 * SE(Standard Error)
+        err[0, i] = sum([m1[e][f'pred_se_{metric}'] * 1.96 * m1[e]['count']
                          for e in m1]) / sum([m1[e]['count'] for e in m1])
-        err[1, i] = sum([m2[e][f'pred_se_{metric}'] * m2[e]['count']
+        err[1, i] = sum([m2[e][f'pred_se_{metric}'] * 1.96 * m2[e]['count']
                          for e in m2]) / sum([m2[e]['count'] for e in m2])
-        err[2, i] = sum([m3[e][f'pred_se_{metric}'] * m3[e]['count']
+        err[2, i] = sum([m3[e][f'pred_se_{metric}'] * 1.96 * m3[e]['count']
                          for e in m3]) / sum([m3[e]['count'] for e in m3])
 
     w = 0.7
