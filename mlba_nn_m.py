@@ -43,7 +43,6 @@ class MLBA_NN_M(nn.Module):
         self.b_ = self.__tensor([1.], torch.float)
         self.b_.requires_grad = True
 
-
         # mu_d for each option and A, b, sigma_d
         self.linear_out = nn.Linear(n_hidden, n_options)
         self.sigmoid = nn.Sigmoid()
@@ -68,7 +67,9 @@ class MLBA_NN_M(nn.Module):
 
     def to_subjective(self, x, m):
         x = x.reshape(x.shape[0], 3, 2)
+        # attributes are in the same metric
         a = b = x.sum(2)
+        # angle = atan(x[:, :, 1] / x[:, :, 0]) => tan(angle) = x[:, :, 1] / x[:, :, 0]
         u1 = b / ((x[:, :, 1] / x[:, :, 0])**m + (b/a)**m)**(1/m)
         u2 = b * (1 - (u1/a)**m)**(1/m)
         return torch.stack([u1, u2], 2).view(x.shape[0], 6)

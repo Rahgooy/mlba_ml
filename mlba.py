@@ -81,8 +81,9 @@ def w2(o1, o2, lambda1, lambda2, beta):
 
 def to_subjective(x, m):
     x = x.reshape(x.shape[0], 3, 2)
+    # attributes are in the same metric
     a = b = x.sum(2)
-    # angle = torch.atan(x[:, :, 1] / x[:, :, 0])
+    # angle = torch.atan(x[:, :, 1] / x[:, :, 0]) => tan(angle) = x[:, :, 1] / x[:, :, 0]
     u1 = b / ((x[:, :, 1] / x[:, :, 0])**m + (b/a)**m)**(1/m)
     u2 = b * (1 - (u1/a)**m)**(1/m)
     return torch.stack([u1, u2], 2).view(x.shape[0], 3, 2)
